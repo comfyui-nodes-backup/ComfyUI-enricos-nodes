@@ -133,7 +133,7 @@ class Compositor4 {
    * Sets up the canvas and draws the composition rectangle and overlay.
    */
   setup(config) {
-    this.setupConfig(config);    
+    this.setupConfig(config);
     this.createCanvas();
     this.createCompositionRectangle();
     this.drawCompositionOverlay();
@@ -252,7 +252,7 @@ class Compositor4 {
       const index = this.toolbarButtons.length - 1;
       const spacing = this.preferences.buttonSpacing;
       buttonIcon.set({
-        left: 10 + (index * (24 + spacing)),
+        left: 10 + index * (24 + spacing),
         top: 10,
         selectable: false,
         evented: true,
@@ -260,7 +260,7 @@ class Compositor4 {
         ignoreTransparentPixels: false, // Add ignoreTransparentPixels property to the button
       });
 
-      buttonIcon.on('mousedown', onClick);
+      buttonIcon.on("mousedown", onClick);
 
       this.fabricCanvas.add(buttonIcon);
       this.fabricCanvas.bringToFront(buttonIcon);
@@ -273,21 +273,21 @@ class Compositor4 {
   addLoadPresetButton() {
     const loadIconSVG = `
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2L12 16M12 16L8 12M12 16L16 12" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M5 20H19V18H5V20Z" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="magenta" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 8V16M12 8L8 12M12 8L16 12" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
     `;
-
     const onClick = () => {
-      console.log('Loading preset...');
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'application/json';
+      console.log("Loading preset...");
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "application/json";
       input.onchange = (event) => {
         const file = event.target.files[0];
         const reader = new FileReader();
         reader.onload = (e) => {
           const preset = JSON.parse(e.target.result);
+          debugger;
           this.loadPreset(preset);
         };
         reader.readAsText(file);
@@ -296,6 +296,17 @@ class Compositor4 {
     };
 
     this.addToolbarButton(loadIconSVG, onClick);
+  }
+
+  /**
+   * Loads a preset and restores the canvas state.
+   * @param {Object} preset - The preset object containing the config and canvas state.
+   */
+  loadPreset(preset) {
+    this.setupConfig(JSON.stringify(preset.config));
+    this.fabricCanvas.loadFromJSON(preset.canvasState, () => {
+      this.fabricCanvas.renderAll();
+    });
   }
 
   /**
@@ -309,13 +320,23 @@ class Compositor4 {
     `;
 
     const onClick = () => {
-      console.log('Saving preset...');
+      console.log("Saving preset...");
+      const config = {
+        width: this.width,
+        height: this.height,
+        padding: this.padding,
+        seed: this.seed,
+        onConfigChanged: this.onConfigChanged,
+        isConfigChanged: this.isConfigChanged,
+        // preset: JSON.stringify(this.preset),
+        // images: this.images,
+      };
       const preset = {
-        config: this.exportAsJSON(),
+        config: config,
         canvasState: this.fabricCanvas.toJSON(),
       };
       console.log(preset);
-      this.downloadFile(JSON.stringify(preset), 'preset.json');
+      this.downloadFile(JSON.stringify(preset), "preset.json");
     };
 
     this.addToolbarButton(heartIconSVG, onClick);
@@ -333,7 +354,7 @@ class Compositor4 {
     `;
 
     const onClick = () => {
-      console.log('Exporting image...');
+      console.log("Exporting image...");
       const base64Image = this.exportAsBase64();
       this.downloadFile(base64Image, `${this.seed}.png`);
     };
@@ -370,7 +391,7 @@ class Compositor4 {
     const spacing = this.preferences.buttonSpacing;
     this.toolbarButtons.forEach((button, index) => {
       button.set({
-        left: 10 + (index * (24 + spacing)),
+        left: 10 + index * (24 + spacing),
         top: 10,
       });
     });
@@ -380,39 +401,39 @@ class Compositor4 {
   bringToFront() {
     this.fabricCanvas.bringToFront(this.compositionOverlay);
     this.fabricCanvas.bringToFront(this.toolbar);
-    this.toolbarButtons.forEach((button)=>this.fabricCanvas.bringToFront(button));
+    this.toolbarButtons.forEach((button) => this.fabricCanvas.bringToFront(button));
     this.fabricCanvas.renderAll();
   }
 
-/**
- * Downloads a file with the given content and filename.
- * @param {string} content - The content of the file.
- * @param {string} filename - The name of the file.
- */
-downloadFile(content, filename) {
-  let link = document.createElement("a");
+  /**
+   * Downloads a file with the given content and filename.
+   * @param {string} content - The content of the file.
+   * @param {string} filename - The name of the file.
+   */
+  downloadFile(content, filename) {
+    let link = document.createElement("a");
 
-  if (filename.endsWith('.json')) {
-    // Handle JSON content
-    const blob = new Blob([content], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url); // Clean up the URL object
-  } else if (filename.endsWith('.png')) {
-    // Handle base64 image content
-    link.href = content;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  } else {
-    console.error('Unsupported file type');
+    if (filename.endsWith(".json")) {
+      // Handle JSON content
+      const blob = new Blob([content], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url); // Clean up the URL object
+    } else if (filename.endsWith(".png")) {
+      // Handle base64 image content
+      link.href = content;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      console.error("Unsupported file type");
+    }
   }
-}
 
   /**
    * Exports the canvas content as a base64 image.
@@ -477,4 +498,6 @@ downloadFile(content, filename) {
     // Redraw the new images on the canvas
     this.setupImages();
   }
+  
+  
 }
