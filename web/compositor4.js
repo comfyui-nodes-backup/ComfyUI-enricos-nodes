@@ -27,6 +27,9 @@ class Compositor4 {
                 fill: '#333', // Dark gray color for the toolbar background
                 height: 40,
                 position: { left: 0, top: 0 }
+            },
+            fabricCanvas: {
+                backgroundColor: '#A9A9A9' // Darker gray color for the canvas background
             }
         };
 
@@ -34,6 +37,11 @@ class Compositor4 {
         ['executed', 'init'].forEach(eventType => {
             document.addEventListener(eventType, (event) => this.setup(event.detail));
         });
+
+        document.addEventListener('replace', (event) => {            
+            this.replaceImages(event.detail.newImages);
+        });
+
     }
 
     /**
@@ -67,6 +75,9 @@ class Compositor4 {
                 fill: '#333', // Dark gray color for the toolbar background
                 height: 40,
                 position: { left: 0, top: 0 }
+            },
+            fabricCanvas: {
+                backgroundColor: '#A9A9A9' // Darker gray color for the canvas background
             }
         };
 
@@ -86,7 +97,7 @@ class Compositor4 {
         this.fabricCanvas = new fabric.Canvas(canvas.id, {
             width: this.width + this.padding * 2,
             height: this.height + this.padding * 2,
-            backgroundColor: '#A9A9A9', // Darker gray color for the canvas background,
+            backgroundColor: this.preferences.fabricCanvas.backgroundColor, // Use preferences for canvas background color
             preserveObjectStacking: true,
         });
     }
@@ -139,7 +150,7 @@ class Compositor4 {
         this.createCanvas();
         this.createCompositionRectangle();
         this.drawCompositionOverlay();
-        this.createImages();
+        if(!this.images.length) this.createImages();
         this.setupImages();
         this.createToolbar();
         this.bringToFront();
@@ -157,7 +168,7 @@ class Compositor4 {
                     top: this.padding,                    
                 });
 
-                // this.equalizeImageHeight(img);
+                this.normalizeHeight(img, 0.3); // Normalize height to 30% of canvas height
                 this.fabricCanvas.add(img);
                 //this.fabricCanvas.renderAll();
             });
@@ -165,12 +176,13 @@ class Compositor4 {
     }
 
     /**
-     * Equalizes the image height to the height of the composition rectangle.
+     * Normalizes the image height to a percentage of the canvas height.
      * The width of the input image is scaled preserving the initial ratio.
      * @param {fabric.Image} img - The fabric image object to be resized.
+     * @param {number} percentage - The percentage of the canvas height to normalize to.
      */
-    equalizeImageHeight(img) {
-        const scaleFactor = this.height / img.height;
+    normalizeHeight(img, percentage) {
+        const scaleFactor = (this.height * percentage) / img.height;
         img.scale(scaleFactor);
     }
 
@@ -199,7 +211,13 @@ class Compositor4 {
             ctx.textBaseline = 'middle';
             ctx.fillText(number, width / 2, height / 2);
 
-            this.images.push(canvas.toDataURL());
+            const img = new Image();
+            img.src = canvas.toDataURL();
+            img.onload = () => {
+                const fabricImg = new fabric.Image(img);
+                this.normalizeHeight(fabricImg, 0.3); // Normalize height to 30% of canvas height
+                this.images.push(fabricImg.toDataURL());
+            };
         });
     }
 
@@ -228,4 +246,67 @@ class Compositor4 {
         this.fabricCanvas.bringToFront(this.toolbar);
         this.fabricCanvas.renderAll();
     }
+
+    /**
+     * Exports the canvas content as a base64 image.
+     * @returns {string} - The base64 representation of the canvas content.
+     */
+    exportAsBase64() {
+        return this.fabricCanvas.toDataURL({
+            format: 'png',
+            quality: 1.0
+        });
+    }
+
+    /**
+     * Exports the canvas state as JSON, excluding the base64 image content.
+     * @returns {Object} - The JSON representation of the canvas state.
+     */
+    exportAsJSON() {
+        const objects = this.fabricCanvas.getObjects().map(obj => {
+            if (obj.type === 'image') {
+                return {
+                    type: obj.type,
+                    width: obj.width,
+                    height: obj.height,
+                    skewX: obj.skewX,
+                    skewY: obj.skewY,
+                    angle: obj.angle,
+                    scaleX: obj.scaleX,
+                    scaleY: obj.scaleY,
+                    left: obj.left,
+                    top: obj.top,
+                    originX: obj.originX,
+                    originY: obj.originY
+                };
+            } else {
+                return obj.toObject();
+            }
+        });
+
+        return {
+            objects: objects,
+            background: this.fabricCanvas.backgroundColor
+        };
+    }
+
+    /**
+     * Replaces the images in the instance with new images and redraws them on the canvas.
+     * @param {string[]} newImages - Array of new base64 images.
+     */
+    replaceImages(newImages) {
+        // Clear existing images from the canvas
+        this.fabricCanvas.getObjects('image').forEach((img) => {
+            this.fabricCanvas.remove(img);
+        });
+
+        // Update the images in the instance
+        this.images = newImages;
+
+        // Redraw the new images on the canvas
+        this.setupImages();
+    }
+
+
+    
 }
