@@ -40,6 +40,7 @@ class CompositorConfig3:
                 "onConfigChanged": ("BOOLEAN", {"label_off": "stop", "label_on": "Grab and Continue", "default": False}),
                 "invertMask": ("BOOLEAN", {"default": False}),
                 "initialized": ("STRING", {"default": ""}),
+
             },
             "optional": {
                 "image1": ("IMAGE",),
@@ -58,6 +59,7 @@ class CompositorConfig3:
                 "mask7": ("MASK",),
                 "image8": ("IMAGE",),
                 "mask8": ("MASK",),
+                "preset": ("STRING", {"default": "", "forceInput": True})
             },
             "hidden": {
                 "prompt": "PROMPT",
@@ -109,8 +111,9 @@ The compositor node
         height = kwargs.pop('height', 512)
         invertMask = kwargs.pop('invertMask', False)
         normalizeHeight = kwargs.pop('normalizeHeight', 512)
-        # grabAndContinue, stop
         onConfigChanged = kwargs.pop('onConfigChanged', False)
+        # grabAndContinue, stop
+        preset = kwargs.pop('preset', None)
         node_id = kwargs.pop('node_id', None)
 
         images = [image1, image2, image3, image4, image5, image6, image7, image8, ]
@@ -166,6 +169,7 @@ The compositor node
             "onConfigChanged": onConfigChanged,
             "normalizeHeight": normalizeHeight,
             "invertMask": invertMask,
+            "preset": preset,
         }
         # print(f"compositor config {node_id} executed")
         # return (res, self.masked, )

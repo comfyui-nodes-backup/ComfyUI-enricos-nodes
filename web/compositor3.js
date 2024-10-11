@@ -184,6 +184,7 @@ app.registerExtension({
             // get stuff connected to this config also...careful with the gui now...
 
             const e = event.detail.output;
+            console.log("executed",event);
             const nodeId = event.detail.node;
             const node = Editor.hook(nodeId);
             if (node.type != "Compositor3") {
@@ -192,25 +193,49 @@ app.registerExtension({
             }
             const instance = node.compositorInstance;
             // console.log("hasResult,awaitedResult", e.hasResult[0], e.awaited[0]);
-
-            node.compositorInstance.w.value = e.width[0];
-            node.compositorInstance.h.value = e.height[0];
-            node.compositorInstance.p.value = e.padding[0];
-            node.compositorInstance.onWidthChange(e.width[0]);
-            node.compositorInstance.onHeightChange(e.height[0]);
-            node.compositorInstance.onPaddingChange(e.padding[0]);
-            // node.compositorInstance.onCaptureOnQueueChange(e.captureOnQueue[0]);
-
             const images = [...e.names];
-
-            const restore = Editor.deserializeStuff(node.fabricDataWidget.value);
             const shouldRestore = true; // Editor.getConfigWidgetValue(node, 3);
             const normalizeHeight = Editor.getConfigWidgetValue(node, 3);
             const onConfigChanged = Editor.getConfigWidgetValue(node, 4);
+            let preset;
+            let restore;
+            if(false){//e.preset || false
+                node.compositorInstance.w.value = e.preset.width;
+                node.compositorInstance.h.value = e.preset.height;
+                node.compositorInstance.p.value = e.preset.padding;
+                node.compositorInstance.onWidthChange(e.preset.width);
+                node.compositorInstance.onHeightChange(e.preset.height);
+                node.compositorInstance.onPaddingChange(e.preset.padding);
+                restore = Editor.deserializeStuff(e.preset);
+                console.log("preset",restore);
+                instance.normalizeHeigh = true;
+                instance.onConfigChanged = onConfigChanged;
+                instance.configChanged = e.configChanged[0];
+                console.log("using preset");
+            }else{
+                node.compositorInstance.w.value = e.width[0];
+                node.compositorInstance.h.value = e.height[0];
+                node.compositorInstance.p.value = e.padding[0];
+                node.compositorInstance.onWidthChange(e.width[0]);
+                node.compositorInstance.onHeightChange(e.height[0]);
+                node.compositorInstance.onPaddingChange(e.padding[0]);
+                restore = Editor.deserializeStuff(node.fabricDataWidget.value);
+                instance.normalizeHeigh = normalizeHeight;
+                instance.onConfigChanged = onConfigChanged;
+                instance.configChanged = e.configChanged[0];
+            }
 
-            instance.normalizeHeigh = normalizeHeight;
-            instance.onConfigChanged = onConfigChanged;
-            instance.configChanged = e.configChanged[0];
+
+
+
+            // node.compositorInstance.onCaptureOnQueueChange(e.captureOnQueue[0]);
+
+
+
+
+
+
+
 
             images.map((b64, index) => {
                 function fromUrlCallback(oImg) {
@@ -891,6 +916,7 @@ class Editor {
     }
 
     addOrReplaceImage(theImage, index, nodeId, r, shouldRestore) {
+        console.log(r);
         const node = app.graph.getNodeById(nodeId);
         const instance = node.compositorInstance;
         if (instance.hasImageAtIndex(index)) {

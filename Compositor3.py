@@ -65,6 +65,7 @@ class Compositor3:
         config_node_id = config["node_id"]
         onConfigChanged = config["onConfigChanged"]
         names = config["names"]
+        preset = config["preset"]
         fabricData = kwargs.get("fabricData")
 
         configChanged = self.configCache != config
@@ -83,6 +84,7 @@ class Compositor3:
             "node_id": [node_id],
             "names": names,
             "fabricData": [fabricData],
+            "preset": [preset],
             "awaited": [self.result],
             "configChanged": [configChanged],
             "onConfigChanged": [onConfigChanged],
