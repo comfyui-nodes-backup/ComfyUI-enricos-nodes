@@ -1,33 +1,13 @@
-
-const LOAD_ICON_SVG = `
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="magenta" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M12 8V16M12 8L8 12M12 8L16 12" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>
-`;
-
-const HEART_ICON_SVG = `
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="red"/>
-  </svg>
-`;
-
-const EXPORT_ICON_SVG = `
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="24" height="24" fill="#ccc" stroke-width="2"/>
-    <path d="M5 20H19V18H5V20ZM12 2V16M12 16L8 12M12 16L16 12" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>
-`;
-
-const BULLSEYE_ICON_SVG = `
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="24" height="24" fill="#ccc" stroke-width="2"/>
-    <circle cx="12" cy="12" r="10" stroke="black" stroke-width="2"/>
-    <circle cx="12" cy="12" r="6" stroke="black" stroke-width="2"/>
-    <circle cx="12" cy="12" r="2" stroke="black" stroke-width="2"/>
-  </svg>
-`;
-
+const ICON_URLS = {
+  loadPreset: "https://icons.getbootstrap.com/assets/icons/file-earmark-arrow-up.svg",
+  savePreset: "https://icons.getbootstrap.com/assets/icons/heart.svg",
+  export: "https://icons.getbootstrap.com/assets/icons/file-earmark-arrow-down.svg",
+  bullseye: "https://icons.getbootstrap.com/assets/icons/crosshair.svg",
+  alignVertical: "https://icons.getbootstrap.com/assets/icons/border-middle.svg", // Icon for vertical centering
+  alignHorizontal: "https://icons.getbootstrap.com/assets/icons/border-center.svg", // Icon for horizontal centering
+  alignBoth: "https://icons.getbootstrap.com/assets/icons/border-inner.svg", // Icon for both horizontal and vertical centering
+  snapToPixel: "https://icons.getbootstrap.com/assets/icons/magnet.svg", // Icon for snap to pixel
+};
 class Toolbar {
   constructor(fabricCanvas, preferences) {
     this.fabricCanvas = fabricCanvas;
@@ -49,36 +29,49 @@ class Toolbar {
     });
 
     this.fabricCanvas.add(this.toolbar);
-  }
 
-  addToolbarButton(svgContent, onClick) {
-    fabric.loadSVGFromString(svgContent, (objects, options) => {
-      const buttonIcon = fabric.util.groupSVGElements(objects, options);
-      this.toolbarButtons.push(buttonIcon); // Track the button
-      const index = this.toolbarButtons.length - 1;
-      const spacing = this.preferences.buttonSpacing;
-      buttonIcon.set({
-        left: 10 + index * (24 + spacing),
-        top: 10,
-        selectable: false,
-        evented: true,
-        hoverCursor: "pointer",
-        ignoreTransparentPixels: false, // Add ignoreTransparentPixels property to the button
-      });
-
-      buttonIcon.on("mousedown", onClick);
-
-      this.fabricCanvas.add(buttonIcon);
-      this.fabricCanvas.bringToFront(buttonIcon);
+    this.fabricCanvas.on("before:selection:cleared", (event) => {
+      this.lastSelection = event.target;
     });
   }
 
+  async addToolbarButton(iconUrl, onClick) {
+    try {
+      const svgContent = await fetchSVGIcon(iconUrl);
+      fabric.loadSVGFromString(svgContent, (objects, options) => {
+        const buttonIcon = fabric.util.groupSVGElements(objects, options);
+        this.toolbarButtons.push(buttonIcon); // Track the button
+        const index = this.toolbarButtons.length - 1;
+        const spacing = this.preferences.toolbar.buttonSpacing;
+        const iconSize = this.preferences.toolbar.iconSize;
+        buttonIcon.set({
+          left: 10 + index * (iconSize + spacing),
+          top: 7,
+          scaleX: iconSize / 24,
+          scaleY: iconSize / 24,
+          selectable: false,
+          evented: true,
+          hoverCursor: "pointer",
+          ignoreTransparentPixels: false, // Add ignoreTransparentPixels property to the button
+        });
+
+        buttonIcon.on("mousedown", onClick);
+
+        this.fabricCanvas.add(buttonIcon);
+        this.fabricCanvas.bringToFront(buttonIcon);
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   layoutToolbarButtons() {
-    const spacing = this.preferences.buttonSpacing;
+    const spacing = this.preferences.toolbar.buttonSpacing;
+    const iconSize = this.preferences.toolbar.iconSize;
     this.toolbarButtons.forEach((button, index) => {
       button.set({
-        left: 10 + index * (24 + spacing),
-        top: 10,
+        left: 10 + index * (iconSize + spacing),
+        top: 2,
       });
     });
     this.fabricCanvas.renderAll();
@@ -90,7 +83,7 @@ class Toolbar {
     this.fabricCanvas.renderAll();
   }
 
-  addLoadPresetButton(compositor) {
+  async addLoadPresetButton(compositor) {
     const onClick = () => {
       console.log("Loading preset...");
       const input = document.createElement("input");
@@ -108,10 +101,10 @@ class Toolbar {
       input.click();
     };
 
-    this.addToolbarButton(LOAD_ICON_SVG, onClick);
+    await this.addToolbarButton(ICON_URLS.loadPreset, onClick);
   }
 
-  addSavePresetButton(compositor) {
+  async addSavePresetButton(compositor) {
     const onClick = () => {
       console.log("Saving preset...");
       const config = {
@@ -132,26 +125,120 @@ class Toolbar {
       compositor.downloadFile(JSON.stringify(preset), "preset.json");
     };
 
-    this.addToolbarButton(HEART_ICON_SVG, onClick);
+    await this.addToolbarButton(ICON_URLS.savePreset, onClick);
   }
 
-  addExportButton(compositor) {
+  async addExportButton(compositor) {
     const onClick = () => {
       console.log("Exporting image...");
       const base64Image = compositor.exportAsBase64();
       compositor.downloadFile(base64Image, `${compositor.seed}.png`);
     };
 
-    this.addToolbarButton(EXPORT_ICON_SVG, onClick);
+    await this.addToolbarButton(ICON_URLS.export, onClick);
   }
 
-  addBullseyeButton(compositor) {
+  async addBullseyeButton(compositor) {
     const onClick = () => {
       compositor.fabricCanvas.ignoreTransparentPixels = !compositor.fabricCanvas.ignoreTransparentPixels;
       const strokeColor = compositor.fabricCanvas.ignoreTransparentPixels ? compositor.preferences.activeBorderColor : compositor.preferences.erosColor;
       compositor.fabricCanvas.renderAll();
     };
 
-    this.addToolbarButton(BULLSEYE_ICON_SVG, onClick);
+    await this.addToolbarButton(ICON_URLS.bullseye, onClick);
   }
+
+  async addAlignVerticalButton() {
+    const onClick = (event) => {
+      this.alignSelectedObjectsVertically();
+    };
+
+    await this.addToolbarButton(ICON_URLS.alignVertical, onClick);
+  }
+
+  async addAlignHorizontalButton() {
+    const onClick = (event) => {
+      this.alignSelectedObjectsHorizontally();
+    };
+
+    await this.addToolbarButton(ICON_URLS.alignHorizontal, onClick);
+  }
+
+  async addAlignBothButton() {
+    const onClick = (event) => {
+      this.alignSelectedObjectsBoth();
+    };
+
+    await this.addToolbarButton(ICON_URLS.alignBoth, onClick);
+  }
+
+  alignSelectedObjectsVertically() {
+    const selection = this.fabricCanvas.getActiveObject() ?? this.lastSelection;
+    if (selection) {
+      const objects = selection.getObjects();
+      const centerX = selection.getCenterPoint().x;
+      objects.forEach((obj) => {
+        obj.set({
+          left: centerX - obj.getScaledWidth() / 2,
+        });
+        obj.setCoords();
+      });
+      this.fabricCanvas.renderAll();
+    }
+  }
+
+  alignSelectedObjectsHorizontally() {
+    const selection = this.fabricCanvas.getActiveObject() ?? this.lastSelection;
+    if (selection) {
+      const objects = selection.getObjects();
+      const centerY = selection.getCenterPoint().y;
+      objects.forEach((obj) => {
+        obj.set({
+          top: centerY - obj.getScaledHeight() / 2,
+        });
+        obj.setCoords();
+      });
+      this.fabricCanvas.renderAll();
+    }
+  }
+
+  alignSelectedObjectsBoth() {
+    const selection = this.fabricCanvas.getActiveObject() ?? this.lastSelection;
+    if (selection) {
+      const objects = selection.getObjects();
+      const centerX = selection.getCenterPoint().x;
+      const centerY = selection.getCenterPoint().y;
+      objects.forEach((obj) => {
+        obj.set({
+          left: centerX - obj.getScaledWidth() / 2,
+          top: centerY - obj.getScaledHeight() / 2,
+        });
+        obj.setCoords();
+      });
+      this.fabricCanvas.renderAll();
+    }
+  }
+
+  // add a method to reset the lastSelection property
+  resetLastSelection() {
+    this.lastSelection = null;
+  }
+
+  // add a methods that sets a preference called snap to pixel and a button that toggles it with a magnet icon
+    async addSnapToPixelButton() {
+        const onClick = () => {
+        this.preferences.snapToPixel = !this.preferences.snapToPixel;
+        this.fabricCanvas.renderAll();
+        };
+    
+        await this.addToolbarButton(ICON_URLS.snapToPixel, onClick);
+    }
+}
+
+async function fetchSVGIcon(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch SVG icon from ${url}`);
+  }
+  return await response.text();
 }

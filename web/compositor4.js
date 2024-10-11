@@ -32,15 +32,16 @@ class Compositor4 {
         strokeWidth: 1,
       },
       toolbar: {
-        fill: "white", // Dark gray color for the toolbar background
+        fill: 'white',
         height: 40,
         position: { left: 0, top: 0 },
+        buttonSpacing: 10,
+        iconSize: 40 // Set the icon size to 30
       },
       fabricCanvas: {
         backgroundColor: "#A9A9A9", // Darker gray color for the canvas background
       },
-      erosColor: "magenta", // Add eros color preference
-      buttonSpacing: 10, // Spacing between buttons
+      erosColor: "magenta", // Add eros color preference      
       activeBorderColor: "magenta", // Border color when button is active
     };
   }
@@ -163,6 +164,11 @@ class Compositor4 {
     this.toolbar.addBullseyeButton(this);
     this.toolbar.addSavePresetButton(this);
     this.toolbar.addLoadPresetButton(this);
+    
+    this.toolbar.addAlignVerticalButton(); // Align vertical button
+    this.toolbar.addAlignHorizontalButton(); // Align horizontal button
+    this.toolbar.addAlignBothButton(); // Align both button
+    this.toolbar.addSnapToPixelButton(); // Snap to pixel button
     this.toolbar.layoutToolbarButtons();
   }
 
