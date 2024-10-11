@@ -32,8 +32,13 @@ class Compositor4 {
         backgroundColor: "#A9A9A9", // Darker gray color for the canvas background
       },
       
-      erosColor: "red", // Add eros color preference
+      erosColor: "magenta", // Add eros color preference
+      
+      buttonSpacing: 10, // Spacing between buttons
+      activeBorderColor: "magenta", // Border color when button is active
     };
+
+    this.toolbarButtons = []; // Track added buttons
 
     // Register event listeners
     ["executed", "init"].forEach((eventType) => {
@@ -81,6 +86,9 @@ class Compositor4 {
         backgroundColor: "#A9A9A9", // Darker gray color for the canvas background
       },      
       erosColor: "red", // Add eros color preference
+      
+      buttonSpacing: 10, // Spacing between buttons
+      activeBorderColor: "red", // Border color when button is active
     };
 
     this.preferences = fetchedPreferences;
@@ -245,11 +253,13 @@ class Compositor4 {
 
     this.fabricCanvas.add(toolbar);
 
-    // Add export button to the toolbar
+    // Add buttons to the toolbar
     this.addExportButton();
+    this.addBullseyeButton();
 
-    //this.fabricCanvas.bringToFront(toolbar);
-    //this.fabricCanvas.renderAll();
+    // Layout the buttons
+    //this.layoutToolbarButtons();
+
   }
 
   /**
@@ -258,6 +268,7 @@ class Compositor4 {
   addExportButton() {
     const exportIconSVG = `
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="24" height="24" fill="#ccc" stroke-width="2"/>
             <path d="M5 20H19V18H5V20ZM12 2V16M12 16L8 12M12 16L16 12" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
     `;
@@ -265,11 +276,12 @@ class Compositor4 {
     fabric.loadSVGFromString(exportIconSVG, (objects, options) => {
         const exportIcon = fabric.util.groupSVGElements(objects, options);
         exportIcon.set({
-            left: 10,
-            top: 10,
+            left:10,
+            top:10,
             selectable: false,
             evented: true,
             hoverCursor: "pointer",
+            ignoreTransparentPixels: false, // Add ignoreTransparentPixels property to the button
         });
 
         // Function to set fill color for all paths in the SVG
@@ -281,6 +293,7 @@ class Compositor4 {
 
         // Add hover effect
         exportIcon.on('mouseover', () => {
+            console.log('Mouse over export icon');
             setFillColor(this.preferences.erosColor);
             this.fabricCanvas.renderAll();
         });
@@ -291,18 +304,80 @@ class Compositor4 {
         });
 
         exportIcon.on('mousedown', () => {
+            console.log('Exporting image...');
             const base64Image = this.exportAsBase64();
             this.downloadFile(base64Image, `${this.seed}.png`);
         });
 
         this.fabricCanvas.add(exportIcon);
+        this.toolbarButtons.push(exportIcon); // Track the button
         this.fabricCanvas.bringToFront(exportIcon);
     });
+  }
+
+  /**
+   * Adds a bullseye button to the toolbar.
+   */
+  addBullseyeButton() {
+    const bullseyeIconSVG = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="24" height="24" fill="#ccc" stroke-width="2"/>
+            <circle cx="12" cy="12" r="10" stroke="black" stroke-width="2"/>
+            <circle cx="12" cy="12" r="6" stroke="black" stroke-width="2"/>
+            <circle cx="12" cy="12" r="2" stroke="black" stroke-width="2"/>
+        </svg>
+    `;
+
+    fabric.loadSVGFromString(bullseyeIconSVG, (objects, options) => {
+        const bullseyeIcon = fabric.util.groupSVGElements(objects, options);
+        
+        bullseyeIcon.set({
+            left:50,
+            top:10,
+            selectable: false,
+            evented: true,
+            hoverCursor: "pointer",
+            ignoreTransparentPixels: false, // Add ignoreTransparentPixels property to the button
+        });
+
+        
+
+        const updateToggleState = () => {
+            console.log('updateToggleState');
+            const strokeColor = this.fabricCanvas.ignoreTransparentPixels ? this.preferences.activeBorderColor : this.preferences.erosColor
+            bullseyeIcon.set('stroke', strokeColor);
+            this.fabricCanvas.renderAll();
+        };
+
+        bullseyeIcon.on('mousedown', () => {
+            this.fabricCanvas.ignoreTransparentPixels = !this.fabricCanvas.ignoreTransparentPixels;                        
+            updateToggleState();
+        });
+
+        this.fabricCanvas.add(bullseyeIcon);
+        this.toolbarButtons.push(bullseyeIcon); // Track the button
+        this.fabricCanvas.bringToFront(bullseyeIcon);
+    });
+  }
+
+  /**
+   * Layouts the buttons in the toolbar.
+   */
+  layoutToolbarButtons() {
+    const spacing = this.preferences.buttonSpacing;
+    this.toolbarButtons.forEach((button, index) => {
+      button.set({
+        left: 10 + (index * (24 + spacing)),
+        top: 10,
+      });
+    });
+    this.fabricCanvas.renderAll();
   }
 
   bringToFront() {
     this.fabricCanvas.bringToFront(this.compositionOverlay);
     this.fabricCanvas.bringToFront(this.toolbar);
+    this.toolbarButtons.forEach((button)=>this.fabricCanvas.bringToFront(button));
     this.fabricCanvas.renderAll();
   }
 
