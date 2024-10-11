@@ -233,6 +233,8 @@ class Compositor4 {
     // Add buttons to the toolbar
     this.addExportButton();
     this.addBullseyeButton();
+    this.addSavePresetButton();
+    this.addLoadPresetButton();
 
     // Layout the buttons
     //this.layoutToolbarButtons();
@@ -240,62 +242,130 @@ class Compositor4 {
   }
 
   /**
-   * Adds an export button to the toolbar.
-   */
-  addExportButton() {
+ * Adds a button to the toolbar.
+ * @param {string} svgContent - The SVG content for the button icon.
+ * @param {function} onClick - The function to execute when the button is clicked.
+ */
+addToolbarButton(svgContent, onClick) {
+    fabric.loadSVGFromString(svgContent, (objects, options) => {
+      const buttonIcon = fabric.util.groupSVGElements(objects, options);
+      buttonIcon.set({
+        selectable: false,
+        evented: true,
+        hoverCursor: "pointer",
+        ignoreTransparentPixels: false, // Add ignoreTransparentPixels property to the button
+      });
+  
+      buttonIcon.on('mousedown', onClick);
+  
+      this.fabricCanvas.add(buttonIcon);
+      this.toolbarButtons.push(buttonIcon); // Track the button
+      //this.layoutToolbarButtons();
+      this.fabricCanvas.bringToFront(buttonIcon);
+    });
+  }
+
+/**
+ * Adds a load preset button to the toolbar.
+ */
+addLoadPresetButton() {
+    const loadIconSVG = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L12 16M12 16L8 12M12 16L16 12" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M5 20H19V18H5V20Z" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    `;
+  
+    const onClick = () => {
+      console.log('Loading preset...');
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/json';
+      input.onchange = (event) => {
+        const file = event.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const preset = JSON.parse(e.target.result);
+          this.loadPreset(preset);
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    };
+  
+    this.addToolbarButton(loadIconSVG, onClick);
+  }
+/**
+ * Adds a save preset button to the toolbar.
+ */
+addSavePresetButton() {
+    const heartIconSVG = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="red"/>
+        </svg>
+    `;
+  
+    const onClick = () => {
+      console.log('Saving preset...');
+      const preset = {
+        config: this.exportAsJSON(),
+        canvasState: this.fabricCanvas.toJSON(),
+      };
+      this.downloadFile(JSON.stringify(preset), 'preset.json');
+    };
+  
+    this.addToolbarButton(heartIconSVG, onClick);
+  }
+
+  /**
+ * Layouts the buttons in the toolbar.
+ */
+layoutToolbarButtons() {
+    const spacing = this.preferences.buttonSpacing;
+    this.toolbarButtons.forEach((button, index) => {
+      button.set({
+        left: 10 + (index * (24 + spacing)),
+        top: 10,
+      });
+    });
+    this.fabricCanvas.renderAll();
+  }
+
+/**
+ * Adds an export button to the toolbar.
+ */
+addExportButton() {
     const exportIconSVG = `
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="24" height="24" fill="#ccc" stroke-width="2"/>
             <path d="M5 20H19V18H5V20ZM12 2V16M12 16L8 12M12 16L16 12" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
     `;
-
-    fabric.loadSVGFromString(exportIconSVG, (objects, options) => {
-        const exportIcon = fabric.util.groupSVGElements(objects, options);
-        exportIcon.set({
-            left:10,
-            top:10,
-            selectable: false,
-            evented: true,
-            hoverCursor: "pointer",
-            ignoreTransparentPixels: false, // Add ignoreTransparentPixels property to the button
-        });
-
-        // Function to set fill color for all paths in the SVG
-        const setFillColor = (color) => {
-            objects.forEach((obj) => {
-                obj.set('stroke', color);
-            });
-        };
-
-        // Add hover effect
-        exportIcon.on('mouseover', () => {
-            console.log('Mouse over export icon');
-            setFillColor(this.preferences.erosColor);
-            this.fabricCanvas.renderAll();
-        });
-
-        exportIcon.on('mouseout', () => {
-            setFillColor('black');
-            this.fabricCanvas.renderAll();
-        });
-
-        exportIcon.on('mousedown', () => {
-            console.log('Exporting image...');
-            const base64Image = this.exportAsBase64();
-            this.downloadFile(base64Image, `${this.seed}.png`);
-        });
-
-        this.fabricCanvas.add(exportIcon);
-        this.toolbarButtons.push(exportIcon); // Track the button
-        this.fabricCanvas.bringToFront(exportIcon);
-    });
+  
+    const onClick = () => {
+      console.log('Exporting image...');
+      const base64Image = this.exportAsBase64();
+      this.downloadFile(base64Image, `${this.seed}.png`);
+    };
+  
+    this.addToolbarButton(exportIconSVG, onClick);
   }
 
   /**
-   * Adds a bullseye button to the toolbar.
-   */
-  addBullseyeButton() {
+ * Loads a preset and restores the canvas state.
+ * @param {Object} preset - The preset object containing the config and canvas state.
+ */
+loadPreset(preset) {
+    this.setupConfig(JSON.stringify(preset.config));
+    this.fabricCanvas.loadFromJSON(preset.canvasState, () => {
+      this.fabricCanvas.renderAll();
+    });
+  }
+
+/**
+ * Adds a bullseye button to the toolbar.
+ */
+addBullseyeButton() {
     const bullseyeIconSVG = `
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="24" height="24" fill="#ccc" stroke-width="2"/>
@@ -304,37 +374,15 @@ class Compositor4 {
             <circle cx="12" cy="12" r="2" stroke="black" stroke-width="2"/>
         </svg>
     `;
-
-    fabric.loadSVGFromString(bullseyeIconSVG, (objects, options) => {
-        const bullseyeIcon = fabric.util.groupSVGElements(objects, options);
-        
-        bullseyeIcon.set({
-            left:44,
-            top:10,
-            selectable: false,
-            evented: true,
-            hoverCursor: "pointer",
-            ignoreTransparentPixels: false, // Add ignoreTransparentPixels property to the button
-        });
-
-        
-
-        const updateToggleState = () => {
-            console.log('updateToggleState');
-            const strokeColor = this.fabricCanvas.ignoreTransparentPixels ? this.preferences.activeBorderColor : this.preferences.erosColor
-            bullseyeIcon.set('stroke', strokeColor);
-            this.fabricCanvas.renderAll();
-        };
-
-        bullseyeIcon.on('mousedown', () => {
-            this.fabricCanvas.ignoreTransparentPixels = !this.fabricCanvas.ignoreTransparentPixels;                        
-            updateToggleState();
-        });
-
-        this.fabricCanvas.add(bullseyeIcon);
-        this.toolbarButtons.push(bullseyeIcon); // Track the button
-        this.fabricCanvas.bringToFront(bullseyeIcon);
-    });
+  
+    const onClick = () => {
+      this.fabricCanvas.ignoreTransparentPixels = !this.fabricCanvas.ignoreTransparentPixels;
+      const strokeColor = this.fabricCanvas.ignoreTransparentPixels ? this.preferences.activeBorderColor : this.preferences.erosColor;
+      bullseyeIcon.set('stroke', strokeColor);
+      this.fabricCanvas.renderAll();
+    };
+  
+    this.addToolbarButton(bullseyeIconSVG, onClick);
   }
 
   /**
