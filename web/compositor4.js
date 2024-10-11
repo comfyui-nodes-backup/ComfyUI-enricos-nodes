@@ -332,7 +332,7 @@ class Compositor4 {
         const bullseyeIcon = fabric.util.groupSVGElements(objects, options);
         
         bullseyeIcon.set({
-            left:50,
+            left:44,
             top:10,
             selectable: false,
             evented: true,
