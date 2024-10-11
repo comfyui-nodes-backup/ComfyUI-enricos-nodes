@@ -17,26 +17,7 @@ class Compositor4 {
    * - images {string[]} (array of base64 images)
    */
   constructor(config) {
-    this.preferences = {
-      composition: {
-        fill: "#696969", // Dark gray color for the rectangle
-        stroke: "green", // Green border
-        strokeWidth: 1,
-      },
-      toolbar: {
-        fill: "white", // Dark gray color for the toolbar background
-        height: 40,
-        position: { left: 0, top: 0 },
-      },
-      fabricCanvas: {
-        backgroundColor: "#A9A9A9", // Darker gray color for the canvas background
-      },
-      
-      erosColor: "magenta", // Add eros color preference
-      
-      buttonSpacing: 10, // Spacing between buttons
-      activeBorderColor: "magenta", // Border color when button is active
-    };
+    this.preferences = this.getPreferences();
 
     this.toolbarButtons = []; // Track added buttons
 
@@ -67,11 +48,11 @@ class Compositor4 {
   }
 
   /**
-   * Fetches preferences and sets them into the class variable.
+   * Returns the preferences object.
+   * @returns {Object} - The preferences object.
    */
-  fetchPreferences() {
-    // Simulate fetching preferences (e.g., from a server or local storage)
-    const fetchedPreferences = {
+  getPreferences() {
+    return {
       composition: {
         fill: "#696969", // Dark gray color for the rectangle
         stroke: "green", // Green border
@@ -84,14 +65,11 @@ class Compositor4 {
       },
       fabricCanvas: {
         backgroundColor: "#A9A9A9", // Darker gray color for the canvas background
-      },      
-      erosColor: "red", // Add eros color preference
-      
+      },
+      erosColor: "magenta", // Add eros color preference
       buttonSpacing: 10, // Spacing between buttons
-      activeBorderColor: "red", // Border color when button is active
+      activeBorderColor: "magenta", // Border color when button is active
     };
-
-    this.preferences = fetchedPreferences;
   }
 
   /**
@@ -155,8 +133,7 @@ class Compositor4 {
    * Sets up the canvas and draws the composition rectangle and overlay.
    */
   setup(config) {
-    this.setupConfig(config);
-    this.fetchPreferences();
+    this.setupConfig(config);    
     this.createCanvas();
     this.createCompositionRectangle();
     this.drawCompositionOverlay();
