@@ -31,6 +31,8 @@ class Compositor4 {
       fabricCanvas: {
         backgroundColor: "#A9A9A9", // Darker gray color for the canvas background
       },
+      
+      erosColor: "red", // Add eros color preference
     };
 
     // Register event listeners
@@ -77,7 +79,8 @@ class Compositor4 {
       },
       fabricCanvas: {
         backgroundColor: "#A9A9A9", // Darker gray color for the canvas background
-      },
+      },      
+      erosColor: "red", // Add eros color preference
     };
 
     this.preferences = fetchedPreferences;
@@ -254,31 +257,46 @@ class Compositor4 {
    */
   addExportButton() {
     const exportIconSVG = `
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M5 20H19V18H5V20ZM12 2V16M12 16L8 12M12 16L16 12" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-        `;
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 20H19V18H5V20ZM12 2V16M12 16L8 12M12 16L16 12" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    `;
 
     fabric.loadSVGFromString(exportIconSVG, (objects, options) => {
-      const exportIcon = fabric.util.groupSVGElements(objects, options);
-      exportIcon.set({
-        left: 10,
-        top: 10,
-        selectable: false,
-        evented: true,
-        hoverCursor: "pointer",
-      });
+        const exportIcon = fabric.util.groupSVGElements(objects, options);
+        exportIcon.set({
+            left: 10,
+            top: 10,
+            selectable: false,
+            evented: true,
+            hoverCursor: "pointer",
+        });
 
-      exportIcon.on("mousedown", () => {
-        const base64Image = this.exportAsBase64();
-        console.log("Exported Base64 Image:", base64Image);
+        // Function to set fill color for all paths in the SVG
+        const setFillColor = (color) => {
+            objects.forEach((obj) => {
+                obj.set('stroke', color);
+            });
+        };
 
-        const jsonState = this.exportAsJSON();
-        console.log("Exported JSON State:", JSON.stringify(jsonState, null, 2));
-      });
+        // Add hover effect
+        exportIcon.on('mouseover', () => {
+            setFillColor(this.preferences.erosColor);
+            this.fabricCanvas.renderAll();
+        });
 
-      this.fabricCanvas.add(exportIcon);
-      this.fabricCanvas.bringToFront(exportIcon);
+        exportIcon.on('mouseout', () => {
+            setFillColor('black');
+            this.fabricCanvas.renderAll();
+        });
+
+        exportIcon.on('mousedown', () => {
+            const base64Image = this.exportAsBase64();
+            this.downloadFile(base64Image, `${this.seed}.png`);
+        });
+
+        this.fabricCanvas.add(exportIcon);
+        this.fabricCanvas.bringToFront(exportIcon);
     });
   }
 
@@ -286,6 +304,20 @@ class Compositor4 {
     this.fabricCanvas.bringToFront(this.compositionOverlay);
     this.fabricCanvas.bringToFront(this.toolbar);
     this.fabricCanvas.renderAll();
+  }
+
+  /**
+   * Downloads a file with the given content and filename.
+   * @param {string} content - The content of the file.
+   * @param {string} filename - The name of the file.
+   */
+  downloadFile(content, filename) {
+    const link = document.createElement("a");
+    link.href = content;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   /**
