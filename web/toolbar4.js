@@ -8,6 +8,7 @@ const ICON_URLS = {
   alignBoth: "https://icons.getbootstrap.com/assets/icons/border-inner.svg", // Icon for both horizontal and vertical centering
   snapToPixel: "https://icons.getbootstrap.com/assets/icons/magnet.svg", // Icon for snap to pixel
   resetTransform: "https://icons.getbootstrap.com/assets/icons/arrow-counterclockwise.svg", // Icon for reset transformations
+  advancedResetTransform: "https://icons.getbootstrap.com/assets/icons/arrow-repeat.svg", // Icon for advanced reset transformations
 };
 
 const BUTTON_INDICES = {
@@ -276,8 +277,8 @@ class Toolbar {
       if (this.preferences.snapToPixel) {
         const obj = e.target;
         obj.set({
-          scaleX: Math.round(obj.scaleX * obj.width / gridSize) * gridSize / obj.width,
-          scaleY: Math.round(obj.scaleY * obj.height / gridSize) * gridSize / obj.height,
+          scaleX: (Math.round((obj.scaleX * obj.width) / gridSize) * gridSize) / obj.width,
+          scaleY: (Math.round((obj.scaleY * obj.height) / gridSize) * gridSize) / obj.height,
         });
       }
     });
@@ -312,12 +313,14 @@ class Toolbar {
   // add a method to add a reset transformations button
   async addResetTransformButton() {
     const onClick = () => {
-     const selection = this.fabricCanvas.getActiveObject() ?? this.lastSelection;
-      
+      const selection = this.fabricCanvas.getActiveObject() ?? this.lastSelection;
+
       if (selection) {
-        if (selection.type === 'activeSelection') {
-            selection.forEachObject((obj) => {
+        if (selection.type === "activeSelection") {
+          selection.forEachObject((obj) => {
             obj.set({
+              originX: "left",
+              originY: "top",
               scaleX: 1,
               scaleY: 1,
               angle: 0,
@@ -327,7 +330,9 @@ class Toolbar {
             obj.setCoords();
           });
         } else {
-            selection.set({
+          selection.set({
+            originX: "left",
+            originY: "top",
             scaleX: 1,
             scaleY: 1,
             angle: 0,
@@ -342,6 +347,77 @@ class Toolbar {
 
     await this.addToolbarButton(ICON_URLS.resetTransform, onClick, BUTTON_INDICES.resetTransform);
   }
+
+  async addAdvancedResetTransformButton() {
+    const onClick = () => {
+      const selection = this.fabricCanvas.getActiveObject() ?? this.lastSelection;
+      const gridSize = this.preferences.gridSize || 1; // Default to 1px if not specified
+
+      if (selection) {
+        if (selection.type === "activeSelection") {
+          selection.forEachObject((obj) => {
+            let newLeft = obj.originalLeft || obj.left;
+            let newTop = obj.originalTop || obj.top;
+            let newWidth = obj.width * obj.scaleX;
+            let newHeight = obj.height * obj.scaleY;
+
+            if (this.preferences.snapToPixel) {
+              newLeft = Math.round(newLeft / gridSize) * gridSize;
+              newTop = Math.round(newTop / gridSize) * gridSize;
+              newWidth = Math.round(newWidth / gridSize) * gridSize;
+              newHeight = Math.round(newHeight / gridSize) * gridSize;
+            }
+
+            if (this.preferences.equalizeHeight) {
+              newHeight = this.fabricCanvas.height;
+            }
+
+            obj.set({
+              originX: "left",
+              originY: "top",
+              scaleX: newWidth / obj.width,
+              scaleY: newHeight / obj.height,
+              angle: 0,
+              left: newLeft,
+              top: newTop,
+            });
+            obj.setCoords();
+          });
+        } else {
+          let newLeft = selection.originalLeft || selection.left;
+          let newTop = selection.originalTop || selection.top;
+          let newWidth = selection.width * selection.scaleX;
+          let newHeight = selection.height * selection.scaleY;
+
+          if (this.preferences.snapToPixel) {
+            newLeft = Math.round(newLeft / gridSize) * gridSize;
+            newTop = Math.round(newTop / gridSize) * gridSize;
+            newWidth = Math.round(newWidth / gridSize) * gridSize;
+            newHeight = Math.round(newHeight / gridSize) * gridSize;
+          }
+
+          if (this.preferences.equalizeHeight) {
+            newHeight = this.fabricCanvas.height;
+          }
+
+          selection.set({
+            originX: "left",
+            originY: "top",
+            scaleX: newWidth / selection.width,
+            scaleY: newHeight / selection.height,
+            angle: 0,
+            left: newLeft,
+            top: newTop,
+          });
+          selection.setCoords();
+        }
+        this.fabricCanvas.renderAll();
+      }
+    };
+
+    await this.addToolbarButton(ICON_URLS.advancedResetTransform, onClick, BUTTON_INDICES.advancedResetTransform);
+  }
+
 }
 
 async function fetchSVGIcon(url) {
