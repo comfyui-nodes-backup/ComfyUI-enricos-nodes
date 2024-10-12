@@ -42,6 +42,9 @@ class Compositor4 {
       fabricCanvas: {
         backgroundColor: "#555555", // Darker gray color for the canvas background
       },
+      snapToGrid:{
+        gridSize: 10,
+      },
       erosColor: "magenta", // Add eros color preference
       activeBorderColor: "magenta", // Border color when button is active
       inactiveBorderColor: "black", // Border color when button is inactive
@@ -146,7 +149,7 @@ class Compositor4 {
     this.drawCompositionOverlay();
     this.fabricCanvas.renderAll();
     console.log(preset.canvasState);
-    this.fabricCanvas.loadFromJSON(preset.canvasState, this.finishedCallback);
+    this.fabricCanvas.loadFromJSON(preset.canvasState, this.finishedCallback.bind(this));
     // Render the canvas
   }
 

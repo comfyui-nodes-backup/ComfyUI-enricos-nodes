@@ -271,27 +271,29 @@ class Toolbar {
     }
   }
 
-  addSnapToPixelListeners() {
-    this.fabricCanvas.on("object:scaling", (e) => {
-      if (this.preferences.snapToPixel) {
-        const obj = e.target;
-        obj.set({
-          scaleX: Math.round(obj.scaleX * obj.width) / obj.width,
-          scaleY: Math.round(obj.scaleY * obj.height) / obj.height,
-        });
-      }
-    });
+addSnapToPixelListeners() {
+  const gridSize = this.preferences.snapToGrid.gridSize || 1; // Default to 1px if not specified
 
-    this.fabricCanvas.on("object:moving", (e) => {
-      if (this.preferences.snapToPixel) {
-        const obj = e.target;
-        obj.set({
-          left: Math.round(obj.left),
-          top: Math.round(obj.top),
-        });
-      }
-    });
-  }
+  this.fabricCanvas.on("object:scaling", (e) => {
+    if (this.preferences.snapToPixel) {
+      const obj = e.target;
+      obj.set({
+        scaleX: Math.round(obj.scaleX * obj.width / gridSize) * gridSize / obj.width,
+        scaleY: Math.round(obj.scaleY * obj.height / gridSize) * gridSize / obj.height,
+      });
+    }
+  });
+
+  this.fabricCanvas.on("object:moving", (e) => {
+    if (this.preferences.snapToPixel) {
+      const obj = e.target;
+      obj.set({
+        left: Math.round(obj.left / gridSize) * gridSize,
+        top: Math.round(obj.top / gridSize) * gridSize,
+      });
+    }
+  });
+}
 
   // add a method to reset the lastSelection property
   resetLastSelection() {
