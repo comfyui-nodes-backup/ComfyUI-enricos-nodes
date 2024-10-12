@@ -7,6 +7,7 @@ class Compositor4 {
       document.addEventListener(eventType, (event) => this.setup(event.detail));
     });
 
+    // test event
     document.addEventListener("replace", (event) => {
       this.replaceImages(event.detail.newImages);
     });
@@ -32,17 +33,18 @@ class Compositor4 {
         strokeWidth: 1,
       },
       toolbar: {
-        fill: 'white',
+        fill: "white",
         height: 40,
         position: { left: 0, top: 0 },
         buttonSpacing: 10,
-        iconSize: 40 // Set the icon size to 30
+        iconSize: 40, // Set the icon size to 30
       },
       fabricCanvas: {
         backgroundColor: "#A9A9A9", // Darker gray color for the canvas background
       },
-      erosColor: "magenta", // Add eros color preference      
+      erosColor: "magenta", // Add eros color preference
       activeBorderColor: "magenta", // Border color when button is active
+      inactiveBorderColor: "black", // Border color when button is inactive
     };
   }
 
@@ -70,6 +72,7 @@ class Compositor4 {
       height: this.height,
       selectable: false, // Make the rectangle non-interactive
       evented: false, // Ensure it is always on top and not interactive
+      excludeFromExport: true, // Exclude the rectangle from export
     });
 
     this.fabricCanvas.add(this.compositionRectangle);
@@ -86,6 +89,7 @@ class Compositor4 {
       strokeWidth: this.preferences.composition.strokeWidth, // Use preferences for stroke width
       selectable: false, // Make the overlay non-interactive
       evented: false, // Ensure it is always on top and not interactive
+      excludeFromExport: true, // Exclude the overlay from export
     });
 
     this.fabricCanvas.add(this.compositionOverlay);
@@ -102,6 +106,43 @@ class Compositor4 {
     this.toolbar = new Toolbar(this.fabricCanvas, this.preferences);
     this.addToolbarButtons();
     this.bringToFront();
+  }
+
+  // temp
+  restore(config) {
+    this.setupConfig(config);
+    this.createCanvas();
+    this.createCompositionRectangle();
+    this.drawCompositionOverlay();
+    if (!this.images.length) this.createImages();
+    this.setupImages();
+    this.toolbar = new Toolbar(this.fabricCanvas, this.preferences);
+    this.addToolbarButtons();
+    this.bringToFront();
+  }
+
+  restoreFromPreset(preset) {
+    // Clear existing objects from the canvas
+    this.fabricCanvas.clear();
+
+    // setupConfig
+    // createCanvas
+    // Restore canvas background color
+    this.fabricCanvas.backgroundColor = preset.background;    
+
+    // Re-add composition rectangle and overlay
+    this.createCompositionRectangle();
+    this.drawCompositionOverlay();
+    console.log(preset.canvasState);
+    this.fabricCanvas.loadFromJSON(preset.canvasState);
+
+    // // Re-add toolbar
+    this.toolbar = new Toolbar(this.fabricCanvas, this.preferences);
+    this.addToolbarButtons();
+    this.bringToFront();
+
+    // Render the canvas
+    this.fabricCanvas.renderAll();
   }
 
   setupImages() {
@@ -164,7 +205,7 @@ class Compositor4 {
     this.toolbar.addBullseyeButton(this);
     this.toolbar.addSavePresetButton(this);
     this.toolbar.addLoadPresetButton(this);
-    
+
     this.toolbar.addAlignVerticalButton(); // Align vertical button
     this.toolbar.addAlignHorizontalButton(); // Align horizontal button
     this.toolbar.addAlignBothButton(); // Align both button
@@ -214,26 +255,29 @@ class Compositor4 {
   }
 
   exportAsJSON() {
-    const objects = this.fabricCanvas.getObjects().map((obj) => {
-      if (obj.type === "image") {
-        return {
-          type: obj.type,
-          width: obj.width,
-          height: obj.height,
-          skewX: obj.skewX,
-          skewY: obj.skewY,
-          angle: obj.angle,
-          scaleX: obj.scaleX,
-          scaleY: obj.scaleY,
-          left: obj.left,
-          top: obj.top,
-          originX: obj.originX,
-          originY: obj.originY,
-        };
-      } else {
-        return obj.toObject();
-      }
-    });
+    const objects = this.fabricCanvas
+      .getObjects()
+      .filter((obj) => !obj.excludeFromExport)
+      .map((obj) => {
+        if (obj.type === "image") {
+          return {
+            type: obj.type,
+            width: obj.width,
+            height: obj.height,
+            skewX: obj.skewX,
+            skewY: obj.skewY,
+            angle: obj.angle,
+            scaleX: obj.scaleX,
+            scaleY: obj.scaleY,
+            left: obj.left,
+            top: obj.top,
+            originX: obj.originX,
+            originY: obj.originY,
+          };
+        } else {
+          return obj.toObject();
+        }
+      });
 
     return {
       objects: objects,

@@ -1,13 +1,30 @@
+// layout-wft, star, play, pause, stop, sliders,
+// play-fill, box-arrow-in-up, box-arrow-down, arrow-collapse,
+//  arrow-collapse-vertical, hr, vr, grid, grid-1x2, layers
+
 const ICON_URLS = {
   loadPreset: "https://icons.getbootstrap.com/assets/icons/file-earmark-arrow-up.svg",
-  savePreset: "https://icons.getbootstrap.com/assets/icons/heart.svg",
-  export: "https://icons.getbootstrap.com/assets/icons/file-earmark-arrow-down.svg",
+  savePreset: "https://icons.getbootstrap.com/assets/icons/file-earmark-arrow-down.svg",
+  export: "https://icons.getbootstrap.com/assets/icons/camera.svg",
   bullseye: "https://icons.getbootstrap.com/assets/icons/crosshair.svg",
   alignVertical: "https://icons.getbootstrap.com/assets/icons/border-middle.svg", // Icon for vertical centering
   alignHorizontal: "https://icons.getbootstrap.com/assets/icons/border-center.svg", // Icon for horizontal centering
   alignBoth: "https://icons.getbootstrap.com/assets/icons/border-inner.svg", // Icon for both horizontal and vertical centering
   snapToPixel: "https://icons.getbootstrap.com/assets/icons/magnet.svg", // Icon for snap to pixel
 };
+
+const BUTTON_INDICES = {
+  export: 0,
+  bullseye: 1,
+  alignVertical: 2,
+  alignHorizontal: 3,
+  alignBoth: 4,
+  snapToPixel: 5,
+  loadPreset: 6,
+  savePreset: 7,
+  
+};
+
 class Toolbar {
   constructor(fabricCanvas, preferences) {
     this.fabricCanvas = fabricCanvas;
@@ -26,6 +43,7 @@ class Toolbar {
       fill: fill, // Use preferences for toolbar fill color
       selectable: false,
       evented: false,
+      excludeFromExport: true,
     });
 
     this.fabricCanvas.add(this.toolbar);
@@ -35,13 +53,12 @@ class Toolbar {
     });
   }
 
-  async addToolbarButton(iconUrl, onClick) {
+  async addToolbarButton(iconUrl, onClick, index) {
     try {
       const svgContent = await fetchSVGIcon(iconUrl);
       fabric.loadSVGFromString(svgContent, (objects, options) => {
         const buttonIcon = fabric.util.groupSVGElements(objects, options);
-        this.toolbarButtons.push(buttonIcon); // Track the button
-        const index = this.toolbarButtons.length - 1;
+        this.toolbarButtons[index] = buttonIcon; // Track the button
         const spacing = this.preferences.toolbar.buttonSpacing;
         const iconSize = this.preferences.toolbar.iconSize;
         buttonIcon.set({
@@ -53,9 +70,32 @@ class Toolbar {
           evented: true,
           hoverCursor: "pointer",
           ignoreTransparentPixels: false, // Add ignoreTransparentPixels property to the button
+          excludeFromExport: true,
         });
 
         buttonIcon.on("mousedown", onClick);
+        buttonIcon.on("mouseout", () => {
+            // Set the stroke of objects within the buttonIcon group to inactiveBorderColor
+            if (buttonIcon.type === 'group') {
+              buttonIcon.getObjects().forEach((obj) => {
+                obj.set("fill", this.preferences.inactiveBorderColor);
+              });
+            } else {
+              buttonIcon.set("fill", this.preferences.inactiveBorderColor);
+            }
+            this.fabricCanvas.renderAll();
+          });
+          buttonIcon.on("mouseover", () => {
+            // Set the stroke of objects within the buttonIcon group to erosColor
+            if (buttonIcon.type === 'group') {
+              buttonIcon.getObjects().forEach((obj) => {
+                obj.set("fill", this.preferences.erosColor);
+              });
+            } else {
+              buttonIcon.set("fill", this.preferences.erosColor);
+            }
+            this.fabricCanvas.renderAll();
+          });
 
         this.fabricCanvas.add(buttonIcon);
         this.fabricCanvas.bringToFront(buttonIcon);
@@ -68,6 +108,7 @@ class Toolbar {
   layoutToolbarButtons() {
     const spacing = this.preferences.toolbar.buttonSpacing;
     const iconSize = this.preferences.toolbar.iconSize;
+    console.log(this.toolbarButtons);
     this.toolbarButtons.forEach((button, index) => {
       button.set({
         left: 10 + index * (iconSize + spacing),
@@ -94,14 +135,14 @@ class Toolbar {
         const reader = new FileReader();
         reader.onload = (e) => {
           const preset = JSON.parse(e.target.result);
-          compositor.loadPreset(preset);
+          compositor.restoreFromPreset(preset);
         };
         reader.readAsText(file);
       };
       input.click();
     };
 
-    await this.addToolbarButton(ICON_URLS.loadPreset, onClick);
+    await this.addToolbarButton(ICON_URLS.loadPreset, onClick, BUTTON_INDICES.loadPreset);
   }
 
   async addSavePresetButton(compositor) {
@@ -125,7 +166,7 @@ class Toolbar {
       compositor.downloadFile(JSON.stringify(preset), "preset.json");
     };
 
-    await this.addToolbarButton(ICON_URLS.savePreset, onClick);
+    await this.addToolbarButton(ICON_URLS.savePreset, onClick, BUTTON_INDICES.savePreset);
   }
 
   async addExportButton(compositor) {
@@ -135,7 +176,7 @@ class Toolbar {
       compositor.downloadFile(base64Image, `${compositor.seed}.png`);
     };
 
-    await this.addToolbarButton(ICON_URLS.export, onClick);
+    await this.addToolbarButton(ICON_URLS.export, onClick, BUTTON_INDICES.export);
   }
 
   async addBullseyeButton(compositor) {
@@ -145,7 +186,7 @@ class Toolbar {
       compositor.fabricCanvas.renderAll();
     };
 
-    await this.addToolbarButton(ICON_URLS.bullseye, onClick);
+    await this.addToolbarButton(ICON_URLS.bullseye, onClick, BUTTON_INDICES.bullseye);
   }
 
   async addAlignVerticalButton() {
@@ -153,7 +194,7 @@ class Toolbar {
       this.alignSelectedObjectsVertically();
     };
 
-    await this.addToolbarButton(ICON_URLS.alignVertical, onClick);
+    await this.addToolbarButton(ICON_URLS.alignVertical, onClick, BUTTON_INDICES.alignVertical);
   }
 
   async addAlignHorizontalButton() {
@@ -161,7 +202,7 @@ class Toolbar {
       this.alignSelectedObjectsHorizontally();
     };
 
-    await this.addToolbarButton(ICON_URLS.alignHorizontal, onClick);
+    await this.addToolbarButton(ICON_URLS.alignHorizontal, onClick, BUTTON_INDICES.alignHorizontal);
   }
 
   async addAlignBothButton() {
@@ -169,7 +210,7 @@ class Toolbar {
       this.alignSelectedObjectsBoth();
     };
 
-    await this.addToolbarButton(ICON_URLS.alignBoth, onClick);
+    await this.addToolbarButton(ICON_URLS.alignBoth, onClick, BUTTON_INDICES.alignBoth);
   }
 
   alignSelectedObjectsVertically() {
@@ -225,14 +266,14 @@ class Toolbar {
   }
 
   // add a methods that sets a preference called snap to pixel and a button that toggles it with a magnet icon
-    async addSnapToPixelButton() {
-        const onClick = () => {
-        this.preferences.snapToPixel = !this.preferences.snapToPixel;
-        this.fabricCanvas.renderAll();
-        };
-    
-        await this.addToolbarButton(ICON_URLS.snapToPixel, onClick);
-    }
+  async addSnapToPixelButton() {
+    const onClick = () => {
+      this.preferences.snapToPixel = !this.preferences.snapToPixel;
+      this.fabricCanvas.renderAll();
+    };
+
+    await this.addToolbarButton(ICON_URLS.snapToPixel, onClick, BUTTON_INDICES.snapToPixel);
+  }
 }
 
 async function fetchSVGIcon(url) {
