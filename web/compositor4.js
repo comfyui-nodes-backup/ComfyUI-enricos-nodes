@@ -28,23 +28,24 @@ class Compositor4 {
   getPreferences() {
     return {
       composition: {
-        fill: "#696969", // Dark gray color for the rectangle
+        fill: "#444444", // Dark gray color for the rectangle
         stroke: "green", // Green border
         strokeWidth: 1,
       },
       toolbar: {
-        fill: "white",
+        fill: "#666666",
         height: 40,
         position: { left: 0, top: 0 },
-        buttonSpacing: 10,
+        buttonSpacing: 4,
         iconSize: 40, // Set the icon size to 30
       },
       fabricCanvas: {
-        backgroundColor: "#A9A9A9", // Darker gray color for the canvas background
+        backgroundColor: "#555555", // Darker gray color for the canvas background
       },
       erosColor: "magenta", // Add eros color preference
       activeBorderColor: "magenta", // Border color when button is active
       inactiveBorderColor: "black", // Border color when button is inactive
+      toggledBorderColor: "green", // Border color when button is toggled
     };
   }
 
@@ -56,10 +57,10 @@ class Compositor4 {
     document.body.appendChild(canvas);
 
     this.fabricCanvas = new fabric.Canvas(canvas.id, {
+      preserveObjectStacking: true,
       width: this.width + this.padding * 2,
       height: this.height + this.padding * 2,
       backgroundColor: this.preferences.fabricCanvas.backgroundColor, // Use preferences for canvas background color
-      preserveObjectStacking: true,
     });
   }
 
@@ -121,28 +122,32 @@ class Compositor4 {
     this.bringToFront();
   }
 
+  finishedCallback(data){
+    console.log(data);
+    this.bringToFront();
+    
+    this.toolbar = new Toolbar(this.fabricCanvas, this.preferences);
+    this.addToolbarButtons();
+    this.fabricCanvas.renderAll();
+  }
+
   restoreFromPreset(preset) {
     // Clear existing objects from the canvas
     this.fabricCanvas.clear();
-
+    this.fabricCanvas.renderAll();
     // setupConfig
     // createCanvas
     // Restore canvas background color
-    this.fabricCanvas.backgroundColor = preset.background;    
-
+    this.fabricCanvas.backgroundColor = preset.background;
+    this.fabricCanvas.renderAll();
     // Re-add composition rectangle and overlay
     this.createCompositionRectangle();
-    this.drawCompositionOverlay();
-    console.log(preset.canvasState);
-    this.fabricCanvas.loadFromJSON(preset.canvasState);
-
-    // // Re-add toolbar
-    this.toolbar = new Toolbar(this.fabricCanvas, this.preferences);
-    this.addToolbarButtons();
-    this.bringToFront();
-
-    // Render the canvas
     this.fabricCanvas.renderAll();
+    this.drawCompositionOverlay();
+    this.fabricCanvas.renderAll();
+    console.log(preset.canvasState);
+    this.fabricCanvas.loadFromJSON(preset.canvasState, this.finishedCallback);
+    // Render the canvas
   }
 
   setupImages() {
@@ -154,6 +159,7 @@ class Compositor4 {
             left: this.padding,
             top: this.padding,
             crossOrigin: "anonymous", // Set crossOrigin attribute
+            preserveObjectStacking: true, // Preserve object stacking
           });
 
           this.normalizeHeight(img, 0.3); // Normalize height to 30% of canvas height
@@ -169,6 +175,7 @@ class Compositor4 {
     img.scale(scaleFactor);
   }
 
+  // testing only
   createImages() {
     const colors = ["#FFB3BA", "#B3FFB3", "#BAE1FF", "#FFFFBA", "#FFDFBA"];
     const numbers = ["1", "2", "3", "4", "5"];
@@ -213,9 +220,10 @@ class Compositor4 {
     this.toolbar.layoutToolbarButtons();
   }
 
-  bringToFront() {
-    this.fabricCanvas.bringToFront(this.compositionOverlay);
+  bringToFront() {  
     this.toolbar.bringToFront();
+    this.fabricCanvas.bringToFront(this.compositionOverlay);
+    this.fabricCanvas.renderAll();
   }
 
   downloadFile(content, filename) {

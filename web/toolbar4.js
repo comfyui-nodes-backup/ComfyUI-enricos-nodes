@@ -22,7 +22,6 @@ const BUTTON_INDICES = {
   snapToPixel: 5,
   loadPreset: 6,
   savePreset: 7,
-  
 };
 
 class Toolbar {
@@ -53,7 +52,7 @@ class Toolbar {
     });
   }
 
-  async addToolbarButton(iconUrl, onClick, index) {
+  async addToolbarButton(iconUrl, onClick, index, toggleable = false) {
     try {
       const svgContent = await fetchSVGIcon(iconUrl);
       fabric.loadSVGFromString(svgContent, (objects, options) => {
@@ -71,34 +70,43 @@ class Toolbar {
           hoverCursor: "pointer",
           ignoreTransparentPixels: false, // Add ignoreTransparentPixels property to the button
           excludeFromExport: true,
+          toggled:false,
         });
 
-        buttonIcon.on("mousedown", onClick);
+        buttonIcon.on("mousedown",  (e)=>{
+            
+            toggleable ? buttonIcon.set("toggled", !buttonIcon.toggled) : ()=>{};
+            objects.forEach((obj) => {
+                obj.set("fill", toggleable && buttonIcon.toggled ? this.preferences.toggledBorderColor : this.preferences.inactiveBorderColor);
+              });
+              onClick(e)
+        });
         buttonIcon.on("mouseout", () => {
-            // Set the stroke of objects within the buttonIcon group to inactiveBorderColor
-            if (buttonIcon.type === 'group') {
-              buttonIcon.getObjects().forEach((obj) => {
-                obj.set("fill", this.preferences.inactiveBorderColor);
-              });
-            } else {
-              buttonIcon.set("fill", this.preferences.inactiveBorderColor);
-            }
-            this.fabricCanvas.renderAll();
-          });
-          buttonIcon.on("mouseover", () => {
-            // Set the stroke of objects within the buttonIcon group to erosColor
-            if (buttonIcon.type === 'group') {
-              buttonIcon.getObjects().forEach((obj) => {
-                obj.set("fill", this.preferences.erosColor);
-              });
-            } else {
-              buttonIcon.set("fill", this.preferences.erosColor);
-            }
-            this.fabricCanvas.renderAll();
-          });
+          // Set the stroke of objects within the buttonIcon group to inactiveBorderColor
+          if (buttonIcon.type === "group") {
+            objects.forEach((obj) => {
+              obj.set("fill", buttonIcon.toggled ? this.preferences.toggledBorderColor : this.preferences.inactiveBorderColor);
+            });
+          } else {
+            buttonIcon.set("fill", buttonIcon.toggled ? this.preferences.toggledBorderColor : this.preferences.inactiveBorderColor);
+          }
+          this.fabricCanvas.renderAll();
+        });
+        buttonIcon.on("mouseover", () => {
+          // Set the stroke of objects within the buttonIcon group to erosColor
+          if (buttonIcon.type === "group") {
+            objects.forEach((obj) => {                
+              obj.set("fill", this.preferences.erosColor);
+            });
+          } else {
+            buttonIcon.set("fill", this.preferences.erosColor);
+          }
+          this.fabricCanvas.renderAll();
+        });
 
         this.fabricCanvas.add(buttonIcon);
         this.fabricCanvas.bringToFront(buttonIcon);
+        return buttonIcon;
       });
     } catch (error) {
       console.error(error);
@@ -119,6 +127,7 @@ class Toolbar {
   }
 
   bringToFront() {
+    //debugger;
     this.fabricCanvas.bringToFront(this.toolbar);
     this.toolbarButtons.forEach((button) => this.fabricCanvas.bringToFront(button));
     this.fabricCanvas.renderAll();
@@ -181,8 +190,9 @@ class Toolbar {
 
   async addBullseyeButton(compositor) {
     const onClick = () => {
-      compositor.fabricCanvas.ignoreTransparentPixels = !compositor.fabricCanvas.ignoreTransparentPixels;
-      const strokeColor = compositor.fabricCanvas.ignoreTransparentPixels ? compositor.preferences.activeBorderColor : compositor.preferences.erosColor;
+      // per pixel target find vs ignoreTransparentPixels
+      compositor.fabricCanvas.perPixelTargetFind = !compositor.fabricCanvas.perPixelTargetFind;
+      const strokeColor = compositor.fabricCanvas.perPixelTargetFind ? compositor.preferences.activeBorderColor : compositor.preferences.erosColor;
       compositor.fabricCanvas.renderAll();
     };
 
@@ -269,10 +279,12 @@ class Toolbar {
   async addSnapToPixelButton() {
     const onClick = () => {
       this.preferences.snapToPixel = !this.preferences.snapToPixel;
+      this.toolbarButtons[BUTTON_INDICES.snapToPixel].set("toggled", this.preferences.snapToPixel ? true: false);
       this.fabricCanvas.renderAll();
     };
 
-    await this.addToolbarButton(ICON_URLS.snapToPixel, onClick, BUTTON_INDICES.snapToPixel);
+    await this.addToolbarButton(ICON_URLS.snapToPixel, onClick, BUTTON_INDICES.snapToPixel, true);
+    
   }
 }
 
