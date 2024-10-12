@@ -50,6 +50,8 @@ class Toolbar {
     this.fabricCanvas.on("before:selection:cleared", (event) => {
       this.lastSelection = event.target;
     });
+
+    this.addSnapToPixelListeners();
   }
 
   async addToolbarButton(iconUrl, onClick, index, toggleable = false) {
@@ -70,16 +72,15 @@ class Toolbar {
           hoverCursor: "pointer",
           ignoreTransparentPixels: false, // Add ignoreTransparentPixels property to the button
           excludeFromExport: true,
-          toggled:false,
+          toggled: false,
         });
 
-        buttonIcon.on("mousedown",  (e)=>{
-            
-            toggleable ? buttonIcon.set("toggled", !buttonIcon.toggled) : ()=>{};
-            objects.forEach((obj) => {
-                obj.set("fill", toggleable && buttonIcon.toggled ? this.preferences.toggledBorderColor : this.preferences.inactiveBorderColor);
-              });
-              onClick(e)
+        buttonIcon.on("mousedown", (e) => {
+          toggleable ? buttonIcon.set("toggled", !buttonIcon.toggled) : () => {};
+          objects.forEach((obj) => {
+            obj.set("fill", toggleable && buttonIcon.toggled ? this.preferences.toggledBorderColor : this.preferences.inactiveBorderColor);
+          });
+          onClick(e);
         });
         buttonIcon.on("mouseout", () => {
           // Set the stroke of objects within the buttonIcon group to inactiveBorderColor
@@ -95,7 +96,7 @@ class Toolbar {
         buttonIcon.on("mouseover", () => {
           // Set the stroke of objects within the buttonIcon group to erosColor
           if (buttonIcon.type === "group") {
-            objects.forEach((obj) => {                
+            objects.forEach((obj) => {
               obj.set("fill", this.preferences.erosColor);
             });
           } else {
@@ -196,7 +197,7 @@ class Toolbar {
       compositor.fabricCanvas.renderAll();
     };
 
-    await this.addToolbarButton(ICON_URLS.bullseye, onClick, BUTTON_INDICES.bullseye);
+    await this.addToolbarButton(ICON_URLS.bullseye, onClick, BUTTON_INDICES.bullseye, true);
   }
 
   async addAlignVerticalButton() {
@@ -270,6 +271,28 @@ class Toolbar {
     }
   }
 
+  addSnapToPixelListeners() {
+    this.fabricCanvas.on("object:scaling", (e) => {
+      if (this.preferences.snapToPixel) {
+        const obj = e.target;
+        obj.set({
+          scaleX: Math.round(obj.scaleX * obj.width) / obj.width,
+          scaleY: Math.round(obj.scaleY * obj.height) / obj.height,
+        });
+      }
+    });
+
+    this.fabricCanvas.on("object:moving", (e) => {
+      if (this.preferences.snapToPixel) {
+        const obj = e.target;
+        obj.set({
+          left: Math.round(obj.left),
+          top: Math.round(obj.top),
+        });
+      }
+    });
+  }
+
   // add a method to reset the lastSelection property
   resetLastSelection() {
     this.lastSelection = null;
@@ -279,12 +302,11 @@ class Toolbar {
   async addSnapToPixelButton() {
     const onClick = () => {
       this.preferences.snapToPixel = !this.preferences.snapToPixel;
-      this.toolbarButtons[BUTTON_INDICES.snapToPixel].set("toggled", this.preferences.snapToPixel ? true: false);
+      this.toolbarButtons[BUTTON_INDICES.snapToPixel].set("toggled", this.preferences.snapToPixel ? true : false);
       this.fabricCanvas.renderAll();
     };
 
     await this.addToolbarButton(ICON_URLS.snapToPixel, onClick, BUTTON_INDICES.snapToPixel, true);
-    
   }
 }
 
