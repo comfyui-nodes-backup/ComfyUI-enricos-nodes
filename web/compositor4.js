@@ -220,6 +220,7 @@ class Compositor4 {
     this.toolbar.addAlignHorizontalButton(); // Align horizontal button
     this.toolbar.addAlignBothButton(); // Align both button
     this.toolbar.addSnapToPixelButton(); // Snap to pixel button
+    this.toolbar.addResetTransformButton(); // Reset transform button
     this.toolbar.layoutToolbarButtons();
   }
 

@@ -1,7 +1,3 @@
-// layout-wft, star, play, pause, stop, sliders,
-// play-fill, box-arrow-in-up, box-arrow-down, arrow-collapse,
-//  arrow-collapse-vertical, hr, vr, grid, grid-1x2, layers
-
 const ICON_URLS = {
   loadPreset: "https://icons.getbootstrap.com/assets/icons/file-earmark-arrow-up.svg",
   savePreset: "https://icons.getbootstrap.com/assets/icons/file-earmark-arrow-down.svg",
@@ -11,6 +7,7 @@ const ICON_URLS = {
   alignHorizontal: "https://icons.getbootstrap.com/assets/icons/border-center.svg", // Icon for horizontal centering
   alignBoth: "https://icons.getbootstrap.com/assets/icons/border-inner.svg", // Icon for both horizontal and vertical centering
   snapToPixel: "https://icons.getbootstrap.com/assets/icons/magnet.svg", // Icon for snap to pixel
+  resetTransform: "https://icons.getbootstrap.com/assets/icons/arrow-counterclockwise.svg", // Icon for reset transformations
 };
 
 const BUTTON_INDICES = {
@@ -22,6 +19,7 @@ const BUTTON_INDICES = {
   snapToPixel: 5,
   loadPreset: 6,
   savePreset: 7,
+  resetTransform: 8,
 };
 
 class Toolbar {
@@ -271,29 +269,29 @@ class Toolbar {
     }
   }
 
-addSnapToPixelListeners() {
-  const gridSize = this.preferences.snapToGrid.gridSize || 1; // Default to 1px if not specified
+  addSnapToPixelListeners() {
+    const gridSize = this.preferences.snapToGrid.gridSize || 1; // Default to 1px if not specified
 
-  this.fabricCanvas.on("object:scaling", (e) => {
-    if (this.preferences.snapToPixel) {
-      const obj = e.target;
-      obj.set({
-        scaleX: Math.round(obj.scaleX * obj.width / gridSize) * gridSize / obj.width,
-        scaleY: Math.round(obj.scaleY * obj.height / gridSize) * gridSize / obj.height,
-      });
-    }
-  });
+    this.fabricCanvas.on("object:scaling", (e) => {
+      if (this.preferences.snapToPixel) {
+        const obj = e.target;
+        obj.set({
+          scaleX: Math.round(obj.scaleX * obj.width / gridSize) * gridSize / obj.width,
+          scaleY: Math.round(obj.scaleY * obj.height / gridSize) * gridSize / obj.height,
+        });
+      }
+    });
 
-  this.fabricCanvas.on("object:moving", (e) => {
-    if (this.preferences.snapToPixel) {
-      const obj = e.target;
-      obj.set({
-        left: Math.round(obj.left / gridSize) * gridSize,
-        top: Math.round(obj.top / gridSize) * gridSize,
-      });
-    }
-  });
-}
+    this.fabricCanvas.on("object:moving", (e) => {
+      if (this.preferences.snapToPixel) {
+        const obj = e.target;
+        obj.set({
+          left: Math.round(obj.left / gridSize) * gridSize,
+          top: Math.round(obj.top / gridSize) * gridSize,
+        });
+      }
+    });
+  }
 
   // add a method to reset the lastSelection property
   resetLastSelection() {
@@ -309,6 +307,40 @@ addSnapToPixelListeners() {
     };
 
     await this.addToolbarButton(ICON_URLS.snapToPixel, onClick, BUTTON_INDICES.snapToPixel, true);
+  }
+
+  // add a method to add a reset transformations button
+  async addResetTransformButton() {
+    const onClick = () => {
+     const selection = this.fabricCanvas.getActiveObject() ?? this.lastSelection;
+      
+      if (selection) {
+        if (selection.type === 'activeSelection') {
+            selection.forEachObject((obj) => {
+            obj.set({
+              scaleX: 1,
+              scaleY: 1,
+              angle: 0,
+              left: obj.originalLeft || obj.left,
+              top: obj.originalTop || obj.top,
+            });
+            obj.setCoords();
+          });
+        } else {
+            selection.set({
+            scaleX: 1,
+            scaleY: 1,
+            angle: 0,
+            left: selection.originalLeft || selection.left,
+            top: selection.originalTop || selection.top,
+          });
+          selection.setCoords();
+        }
+        this.fabricCanvas.renderAll();
+      }
+    };
+
+    await this.addToolbarButton(ICON_URLS.resetTransform, onClick, BUTTON_INDICES.resetTransform);
   }
 }
 
