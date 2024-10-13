@@ -218,20 +218,7 @@ class Compositor4 {
   }
 
   addToolbarButtons() {
-    this.toolbar.addExportButton(this);
-    this.toolbar.addBullseyeButton(this);
-    this.toolbar.addSavePresetButton(this);
-    this.toolbar.addLoadPresetButton(this);
-
-    this.toolbar.addAlignVerticalButton(); // Align vertical button
-    this.toolbar.addAlignHorizontalButton(); // Align horizontal button
-    this.toolbar.addAlignBothButton(); // Align both button
-    this.toolbar.addsnapToGridButton(); // Snap to pixel button
-    this.toolbar.addResetTransformButton(); // Reset transform button
-    this.toolbar.addAdvancedResetTransformButton(); // Reset transform button
-    this.toolbar.addEqualizeHeightButton(); // Equalize height button
-    this.toolbar.layoutToolbarButtons();
-
+    this.toolbar.addToolbarButtons()
   }
 
   bringToFront() {  

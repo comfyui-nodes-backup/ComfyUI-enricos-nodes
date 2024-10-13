@@ -10,29 +10,53 @@ const ICON_URLS = {
   resetTransform: "https://icons.getbootstrap.com/assets/icons/arrow-counterclockwise.svg", // Icon for reset transformations
   advancedResetTransform: "https://icons.getbootstrap.com/assets/icons/arrow-repeat.svg", // Icon for advanced reset transformations
   equalizeHeight: "https://icons.getbootstrap.com/assets/icons/grid.svg", // Icon for equalize height
+  
 };
 
-const BUTTON_INDICES = {
-  export: 0,
-  bullseye: 1,
-  alignVertical: 2,
-  alignHorizontal: 3,
-  alignBoth: 4,
-  snapToGrid: 5,
-  loadPreset: 6,
-  savePreset: 7,
-  resetTransform: 8,
-  advancedResetTransform: 9,
-  equalizeHeight: 10,
-};
+const BUTTON_INDICES = [
+  "export",
+  "loadPreset",
+  "savePreset",
+  
+  "alignVertical",
+  "alignHorizontal",
+  "alignBoth",
+  "resetTransform",
+  "advancedResetTransform",
+  "bullseye",
+  "snapToGrid",
+  "equalizeHeight",
+];
 
 class Toolbar {
-  constructor({fabricCanvas, preferences,compositionRectangle}) {
-    this.fabricCanvas = fabricCanvas;
-    this.preferences = preferences;
-    this.compositionRectangle = compositionRectangle;
+  constructor(compositor) {
+    this.fabricCanvas = compositor.fabricCanvas;
+    this.preferences = compositor.preferences;
+    this.compositionRectangle = compositor.compositionRectangle;
+    this.compositor = compositor;
     this.toolbarButtons = [];
     this.createToolbar();
+  }
+
+  addToolbarButtons() {
+    this.addExportButton();
+    
+    
+    this.addSavePresetButton();
+    this.addLoadPresetButton();
+    
+    this.addAlignVerticalButton(); // Align vertical button
+    this.addAlignHorizontalButton(); // Align horizontal button
+    this.addAlignBothButton(); // Align both button
+    
+    this.addResetTransformButton(); // Reset transform button
+    this.addAdvancedResetTransformButton(); // Reset transform button
+    
+    this.addBullseyeButton();
+    this.addsnapToGridButton(); // Snap to pixel button
+    this.addEqualizeHeightButton(); // Equalize height button
+
+    this.layoutToolbarButtons();
   }
 
   createToolbar() {
@@ -71,42 +95,44 @@ class Toolbar {
           scaleX: iconSize / 24,
           scaleY: iconSize / 24,
           selectable: false,
-          evented: true,
-          hoverCursor: "pointer",
+          evented: iconUrl !== ICON_URLS.separator, // Make separator non-interactive
+          hoverCursor: iconUrl !== ICON_URLS.separator ? "pointer" : "default", // No pointer cursor for separator
           ignoreTransparentPixels: false, // Add ignoreTransparentPixels property to the button
           excludeFromExport: true,
           toggled: false,
         });
 
-        buttonIcon.on("mousedown", (e) => {
-          toggleable ? buttonIcon.set("toggled", !buttonIcon.toggled) : () => {};
-          objects.forEach((obj) => {
-            obj.set("fill", toggleable && buttonIcon.toggled ? this.preferences.toggledBorderColor : this.preferences.inactiveBorderColor);
+        if (iconUrl !== ICON_URLS.separator) {
+          buttonIcon.on("mousedown", (e) => {
+            toggleable ? buttonIcon.set("toggled", !buttonIcon.toggled) : () => {};
+            objects.forEach((obj) => {
+              obj.set("fill", toggleable && buttonIcon.toggled ? this.preferences.toggledBorderColor : this.preferences.inactiveBorderColor);
+            });
+            onClick(e);
           });
-          onClick(e);
-        });
-        buttonIcon.on("mouseout", () => {
-          // Set the stroke of objects within the buttonIcon group to inactiveBorderColor
-          if (buttonIcon.type === "group") {
-            objects.forEach((obj) => {
-              obj.set("fill", buttonIcon.toggled ? this.preferences.toggledBorderColor : this.preferences.inactiveBorderColor);
-            });
-          } else {
-            buttonIcon.set("fill", buttonIcon.toggled ? this.preferences.toggledBorderColor : this.preferences.inactiveBorderColor);
-          }
-          this.fabricCanvas.renderAll();
-        });
-        buttonIcon.on("mouseover", () => {
-          // Set the stroke of objects within the buttonIcon group to erosColor
-          if (buttonIcon.type === "group") {
-            objects.forEach((obj) => {
-              obj.set("fill", this.preferences.erosColor);
-            });
-          } else {
-            buttonIcon.set("fill", this.preferences.erosColor);
-          }
-          this.fabricCanvas.renderAll();
-        });
+          buttonIcon.on("mouseout", () => {
+            // Set the stroke of objects within the buttonIcon group to inactiveBorderColor
+            if (buttonIcon.type === "group") {
+              objects.forEach((obj) => {
+                obj.set("fill", buttonIcon.toggled ? this.preferences.toggledBorderColor : this.preferences.inactiveBorderColor);
+              });
+            } else {
+              buttonIcon.set("fill", buttonIcon.toggled ? this.preferences.toggledBorderColor : this.preferences.inactiveBorderColor);
+            }
+            this.fabricCanvas.renderAll();
+          });
+          buttonIcon.on("mouseover", () => {
+            // Set the stroke of objects within the buttonIcon group to erosColor
+            if (buttonIcon.type === "group") {
+              objects.forEach((obj) => {
+                obj.set("fill", this.preferences.erosColor);
+              });
+            } else {
+              buttonIcon.set("fill", this.preferences.erosColor);
+            }
+            this.fabricCanvas.renderAll();
+          });
+        }
 
         this.fabricCanvas.add(buttonIcon);
         this.fabricCanvas.bringToFront(buttonIcon);
@@ -137,7 +163,7 @@ class Toolbar {
     this.fabricCanvas.renderAll();
   }
 
-  async addLoadPresetButton(compositor) {
+  async addLoadPresetButton() {
     const onClick = () => {
       console.log("Loading preset...");
       const input = document.createElement("input");
@@ -148,59 +174,59 @@ class Toolbar {
         const reader = new FileReader();
         reader.onload = (e) => {
           const preset = JSON.parse(e.target.result);
-          compositor.restoreFromPreset(preset);
+          this.compositor.restoreFromPreset(preset);
         };
         reader.readAsText(file);
       };
       input.click();
     };
 
-    await this.addToolbarButton(ICON_URLS.loadPreset, onClick, BUTTON_INDICES.loadPreset);
+    await this.addToolbarButton(ICON_URLS.loadPreset, onClick, BUTTON_INDICES.indexOf("loadPreset"));
   }
 
-  async addSavePresetButton(compositor) {
+  async addSavePresetButton() {
     const onClick = () => {
       console.log("Saving preset...");
       const config = {
-        width: compositor.width,
-        height: compositor.height,
-        padding: compositor.padding,
-        seed: compositor.seed,
-        onConfigChanged: compositor.onConfigChanged,
-        isConfigChanged: compositor.isConfigChanged,
-        preset: JSON.stringify(compositor.preset),
-        images: compositor.images,
+        width: this.compositor.width,
+        height: this.compositor.height,
+        padding: this.compositor.padding,
+        seed: this.compositor.seed,
+        onConfigChanged: this.compositor.onConfigChanged,
+        isConfigChanged: this.compositor.isConfigChanged,
+        preset: JSON.stringify(this.compositor.preset),
+        images: this.compositor.images,
       };
       const preset = {
         config: config,
-        canvasState: compositor.fabricCanvas.toJSON(),
+        canvasState: this.compositor.fabricCanvas.toJSON(),
       };
       console.log(preset);
-      compositor.downloadFile(JSON.stringify(preset), "preset.json");
+      this.compositor.downloadFile(JSON.stringify(preset), "preset.json");
     };
 
-    await this.addToolbarButton(ICON_URLS.savePreset, onClick, BUTTON_INDICES.savePreset);
+    await this.addToolbarButton(ICON_URLS.savePreset, onClick, BUTTON_INDICES.indexOf("savePreset"));
   }
 
-  async addExportButton(compositor) {
+  async addExportButton() {
     const onClick = () => {
       console.log("Exporting image...");
-      const base64Image = compositor.exportAsBase64();
-      compositor.downloadFile(base64Image, `${compositor.seed}.png`);
+      const base64Image = this.compositor.exportAsBase64();
+      this.compositor.downloadFile(base64Image, `${this.compositor.seed}.png`);
     };
 
-    await this.addToolbarButton(ICON_URLS.export, onClick, BUTTON_INDICES.export);
+    await this.addToolbarButton(ICON_URLS.export, onClick, BUTTON_INDICES.indexOf("export"));
   }
 
-  async addBullseyeButton(compositor) {
+  async addBullseyeButton() {
     const onClick = () => {
       // per pixel target find vs ignoreTransparentPixels
-      compositor.fabricCanvas.perPixelTargetFind = !compositor.fabricCanvas.perPixelTargetFind;
-      const strokeColor = compositor.fabricCanvas.perPixelTargetFind ? compositor.preferences.activeBorderColor : compositor.preferences.erosColor;
-      compositor.fabricCanvas.renderAll();
+      this.compositor.fabricCanvas.perPixelTargetFind = !this.compositor.fabricCanvas.perPixelTargetFind;
+      const strokeColor = this.compositor.fabricCanvas.perPixelTargetFind ? this.compositor.preferences.activeBorderColor : this.compositor.preferences.erosColor;
+      this.compositor.fabricCanvas.renderAll();
     };
 
-    await this.addToolbarButton(ICON_URLS.bullseye, onClick, BUTTON_INDICES.bullseye, true);
+    await this.addToolbarButton(ICON_URLS.bullseye, onClick, BUTTON_INDICES.indexOf("bullseye"), true);
   }
 
   async addAlignVerticalButton() {
@@ -208,7 +234,7 @@ class Toolbar {
       this.alignSelectedObjectsVertically();
     };
 
-    await this.addToolbarButton(ICON_URLS.alignVertical, onClick, BUTTON_INDICES.alignVertical);
+    await this.addToolbarButton(ICON_URLS.alignVertical, onClick, BUTTON_INDICES.indexOf("alignVertical"));
   }
 
   async addAlignHorizontalButton() {
@@ -216,7 +242,7 @@ class Toolbar {
       this.alignSelectedObjectsHorizontally();
     };
 
-    await this.addToolbarButton(ICON_URLS.alignHorizontal, onClick, BUTTON_INDICES.alignHorizontal);
+    await this.addToolbarButton(ICON_URLS.alignHorizontal, onClick, BUTTON_INDICES.indexOf("alignHorizontal"));
   }
 
   async addAlignBothButton() {
@@ -224,7 +250,7 @@ class Toolbar {
       this.alignSelectedObjectsBoth();
     };
 
-    await this.addToolbarButton(ICON_URLS.alignBoth, onClick, BUTTON_INDICES.alignBoth);
+    await this.addToolbarButton(ICON_URLS.alignBoth, onClick, BUTTON_INDICES.indexOf("alignBoth"));
   }
 
   alignSelectedObjectsVertically() {
@@ -307,11 +333,11 @@ class Toolbar {
   async addsnapToGridButton() {
     const onClick = () => {
       this.preferences.snapToGrid.enabled = !this.preferences.snapToGrid.enabled;
-      this.toolbarButtons[BUTTON_INDICES.snapToGrid].set("toggled", this.preferences.snapToGrid.enabled ? true : false);
+      this.toolbarButtons[BUTTON_INDICES.indexOf("snapToGrid")].set("toggled", this.preferences.snapToGrid.enabled ? true : false);
       this.fabricCanvas.renderAll();
     };
 
-    await this.addToolbarButton(ICON_URLS.snapToGrid, onClick, BUTTON_INDICES.snapToGrid, true);
+    await this.addToolbarButton(ICON_URLS.snapToGrid, onClick, BUTTON_INDICES.indexOf("snapToGrid"), true);
   }
 
   // add a method to add a reset transformations button
@@ -349,58 +375,57 @@ class Toolbar {
       }
     };
 
-    await this.addToolbarButton(ICON_URLS.resetTransform, onClick, BUTTON_INDICES.resetTransform);
+    await this.addToolbarButton(ICON_URLS.resetTransform, onClick, BUTTON_INDICES.indexOf("resetTransform"));
   }
 
   async addAdvancedResetTransformButton() {
     const onClick = () => {
-        const selection = this.fabricCanvas.getActiveObject() ?? this.lastSelection;
-        const gridSize = this.preferences.snapToGrid.gridSize || 1; // Default to 1px if not specified
+      const selection = this.fabricCanvas.getActiveObject() ?? this.lastSelection;
+      const gridSize = this.preferences.snapToGrid.gridSize || 1; // Default to 1px if not specified
 
-        if (selection && this.preferences.equalizeHeight.enabled) {
-            const targetHeight = this.compositionRectangle.height;
+      if (selection && this.preferences.equalizeHeight.enabled) {
+        const targetHeight = this.compositionRectangle.height;
 
-            const snapToGrid = (value) => Math.round(value / gridSize) * gridSize;
+        const snapToGrid = (value) => Math.round(value / gridSize) * gridSize;
 
-            if (selection.type === "activeSelection") {
-                selection.forEachObject((obj) => {
-                    const scaleFactor = targetHeight / obj.height;
-                    obj.scale(scaleFactor);
+        if (selection.type === "activeSelection") {
+          selection.forEachObject((obj) => {
+            const scaleFactor = targetHeight / obj.height;
+            obj.scale(scaleFactor);
 
-                    // Snap to grid
-                    obj.left = snapToGrid(obj.left);
-                    obj.top = snapToGrid(obj.top);
+            // Snap to grid
+            obj.left = snapToGrid(obj.left);
+            obj.top = snapToGrid(obj.top);
 
-                    obj.setCoords();
-                });
-            } else {
-                const scaleFactor = targetHeight / selection.height;
-                selection.scale(scaleFactor);
+            obj.setCoords();
+          });
+        } else {
+          const scaleFactor = targetHeight / selection.height;
+          selection.scale(scaleFactor);
 
-                // Snap to grid
-                selection.left = snapToGrid(selection.left);
-                selection.top = snapToGrid(selection.top);
+          // Snap to grid
+          selection.left = snapToGrid(selection.left);
+          selection.top = snapToGrid(selection.top);
 
-                selection.setCoords();
-            }
-            this.fabricCanvas.renderAll();
+          selection.setCoords();
         }
+        this.fabricCanvas.renderAll();
+      }
     };
 
-    await this.addToolbarButton(ICON_URLS.advancedResetTransform, onClick, BUTTON_INDICES.advancedResetTransform);
-}
+    await this.addToolbarButton(ICON_URLS.advancedResetTransform, onClick, BUTTON_INDICES.indexOf("advancedResetTransform"));
+  }
 
   // add new button to toggle equalizeHeight.enabled in preferences
-    async addEqualizeHeightButton() {
-        const onClick = () => {
-        this.preferences.equalizeHeight.enabled = !this.preferences.equalizeHeight.enabled;
-        this.toolbarButtons[BUTTON_INDICES.equalizeHeight].set("toggled", this.preferences.equalizeHeight.enabled ? true : false);
-        this.fabricCanvas.renderAll();
-        };
-    
-        await this.addToolbarButton(ICON_URLS.equalizeHeight, onClick, BUTTON_INDICES.equalizeHeight, true);
-    }
+  async addEqualizeHeightButton() {
+    const onClick = () => {
+      this.preferences.equalizeHeight.enabled = !this.preferences.equalizeHeight.enabled;
+      this.toolbarButtons[BUTTON_INDICES.indexOf("equalizeHeight")].set("toggled", this.preferences.equalizeHeight.enabled ? true : false);
+      this.fabricCanvas.renderAll();
+    };
 
+    await this.addToolbarButton(ICON_URLS.equalizeHeight, onClick, BUTTON_INDICES.indexOf("equalizeHeight"), true);
+  }
 }
 
 async function fetchSVGIcon(url) {
