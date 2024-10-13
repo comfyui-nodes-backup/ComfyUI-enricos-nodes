@@ -9,24 +9,11 @@ const ICON_URLS = {
   snapToGrid: "https://icons.getbootstrap.com/assets/icons/magnet.svg", // Icon for snap to pixel
   resetTransform: "https://icons.getbootstrap.com/assets/icons/arrow-counterclockwise.svg", // Icon for reset transformations
   advancedResetTransform: "https://icons.getbootstrap.com/assets/icons/arrow-repeat.svg", // Icon for advanced reset transformations
-  equalizeHeight: "https://icons.getbootstrap.com/assets/icons/grid.svg", // Icon for equalize height
-  
+  equalizeHeight: "https://icons.getbootstrap.com/assets/icons/sliders2-vertical.svg", // Icon for equalize height
+  toggleGrid: "https://icons.getbootstrap.com/assets/icons/border.svg", // Icon for toggle grid
 };
 
-const BUTTON_INDICES = [
-  "export",
-  "loadPreset",
-  "savePreset",
-  
-  "alignVertical",
-  "alignHorizontal",
-  "alignBoth",
-  "resetTransform",
-  "advancedResetTransform",
-  "bullseye",
-  "snapToGrid",
-  "equalizeHeight",
-];
+const BUTTON_INDICES = ["export", "loadPreset", "savePreset", "alignVertical", "alignHorizontal", "alignBoth", "resetTransform", "advancedResetTransform", "bullseye", "snapToGrid", "equalizeHeight", "toggleGrid"];
 
 class Toolbar {
   constructor(compositor) {
@@ -40,22 +27,21 @@ class Toolbar {
 
   addToolbarButtons() {
     this.addExportButton();
-    
-    
+
     this.addSavePresetButton();
     this.addLoadPresetButton();
-    
+
     this.addAlignVerticalButton(); // Align vertical button
     this.addAlignHorizontalButton(); // Align horizontal button
     this.addAlignBothButton(); // Align both button
-    
+
     this.addResetTransformButton(); // Reset transform button
     this.addAdvancedResetTransformButton(); // Reset transform button
-    
+
     this.addBullseyeButton();
     this.addsnapToGridButton(); // Snap to pixel button
     this.addEqualizeHeightButton(); // Equalize height button
-
+    this.addToggleGridButton(); // Toggle grid button
     this.layoutToolbarButtons();
   }
 
@@ -161,6 +147,18 @@ class Toolbar {
     this.fabricCanvas.bringToFront(this.toolbar);
     this.toolbarButtons.forEach((button) => this.fabricCanvas.bringToFront(button));
     this.fabricCanvas.renderAll();
+  }
+
+  // add a method to add a toggle grid button
+  async addToggleGridButton() {
+    const onClick = () => {
+      this.compositor.toggleGrid();
+      const isGridVisible = this.compositor.preferences.snapToGrid.isGridVisible;
+      this.toolbarButtons[BUTTON_INDICES.indexOf("toggleGrid")].set("toggled", isGridVisible ? true : false);
+      this.fabricCanvas.renderAll();
+    };
+
+    await this.addToolbarButton(ICON_URLS.toggleGrid, onClick, BUTTON_INDICES.indexOf("toggleGrid"), true);
   }
 
   async addLoadPresetButton() {

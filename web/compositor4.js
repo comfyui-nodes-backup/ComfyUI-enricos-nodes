@@ -25,6 +25,70 @@ class Compositor4 {
     this.images = parsedConfig.images || [];
   }
 
+  createGridImage() {
+    const width = this.compositionRectangle.width;
+    const height = this.compositionRectangle.height;
+    const distance = this.preferences.snapToGrid.gridSize;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+
+    // Set the background to white
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, width, height);
+
+    // Set the fill color for the dots to black
+    ctx.fillStyle = "black";
+
+    // Draw 1x1 pixel dots
+    for (let x = distance; x < width; x += distance) {
+      for (let y = distance; y < height; y += distance) {
+        ctx.fillRect(x, y, 1, 1);
+      }
+    }
+
+    return canvas.toDataURL();
+  }
+
+  addGridImage() {
+    this.gridImage = this.createGridImage();
+    fabric.Image.fromURL(
+      this.gridImage,
+      (img) => {
+        img.set({
+          left: this.padding,
+          top: this.padding,
+          selectable: false,
+          evented: false,
+          excludeFromExport: true,
+          visible: this.preferences.snapToGrid.isGridVisible,
+        });
+
+        this.fabricCanvas.add(img);
+        this.gridImage = img;
+      },
+      { crossOrigin: "anonymous" }
+    );
+  }
+
+  // add a method to toggle the grid visibility the grid will substitute the compositionRectangle
+  toggleGrid() {
+    this.preferences.snapToGrid.isGridVisible = !this.preferences.snapToGrid.isGridVisible;
+    if (this.preferences.snapToGrid.isGridVisible) {
+      this.compositionRectangle.set({ visible: !this.preferences.snapToGrid.isGridVisible });
+      this.gridImage.set({ visible: this.preferences.snapToGrid.isGridVisible });
+    } else {
+      this.compositionRectangle.set({ visible: !this.preferences.snapToGrid.isGridVisible });
+      this.gridImage.set({ visible: this.preferences.snapToGrid.isGridVisible });
+    }
+
+    this.fabricCanvas.renderAll();
+  }
+
+  // add a button that toggles the grid visibility
+
   getPreferences() {
     return {
       composition: {
@@ -42,20 +106,21 @@ class Compositor4 {
       fabricCanvas: {
         backgroundColor: "#555555", // Darker gray color for the canvas background
       },
-      equalizeHeight:{
+      equalizeHeight: {
         enabled: false,
       },
-      snapToGrid:{
+      snapToGrid: {
         gridSize: 10,
         enabled: false,
+        isGridVisible: false,
       },
-      ignoreTransparentPixels:{
-        enabled:  true, 
+      ignoreTransparentPixels: {
+        enabled: true,
       },
       erosColor: "magenta", // Add eros color preference
       activeBorderColor: "magenta", // Border color when button is active
       inactiveBorderColor: "black", // Border color when button is inactive
-      toggledBorderColor: "green", // Border color when button is toggled
+      toggledBorderColor: "orange", // Border color when button is toggled
     };
   }
 
@@ -111,6 +176,7 @@ class Compositor4 {
     this.setupConfig(config);
     this.createCanvas();
     this.createCompositionRectangle();
+    this.addGridImage();
     this.drawCompositionOverlay();
     if (!this.images.length) this.createImages();
     this.setupImages();
@@ -119,23 +185,10 @@ class Compositor4 {
     this.bringToFront();
   }
 
-  // temp
-  restore(config) {
-    this.setupConfig(config);
-    this.createCanvas();
-    this.createCompositionRectangle();
-    this.drawCompositionOverlay();
-    if (!this.images.length) this.createImages();
-    this.setupImages();
-    this.toolbar = new Toolbar(this);
-    this.addToolbarButtons();
-    this.bringToFront();
-  }
-
-  finishedCallback(data){
+  finishedCallback(data) {
     console.log(data);
     this.bringToFront();
-    
+
     this.toolbar = new Toolbar(this);
     this.addToolbarButtons();
     this.fabricCanvas.renderAll();
@@ -152,6 +205,7 @@ class Compositor4 {
     this.fabricCanvas.renderAll();
     // Re-add composition rectangle and overlay
     this.createCompositionRectangle();
+    this.addGridImage();
     this.fabricCanvas.renderAll();
     this.drawCompositionOverlay();
     this.fabricCanvas.renderAll();
@@ -218,10 +272,11 @@ class Compositor4 {
   }
 
   addToolbarButtons() {
-    this.toolbar.addToolbarButtons()
+    this.toolbar.addToolbarButtons();
   }
 
-  bringToFront() {  
+  bringToFront() {
+    //this.fabricCanvas.sendToBack(this.gridImage);
     this.toolbar.bringToFront();
     this.fabricCanvas.bringToFront(this.compositionOverlay);
     this.fabricCanvas.renderAll();

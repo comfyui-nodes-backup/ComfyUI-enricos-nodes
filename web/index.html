@@ -15,7 +15,7 @@
             const query = 'matisse'; // Change this to your desired search query
             try {
                 const images = await fetchArtInstituteImages(query, 5);
-
+                
                 const config = JSON.stringify({
                     width: 800,
                     height: 600,
@@ -62,6 +62,13 @@
 
             return imageUrls.filter(url => url !== null);
         }
+
+        //add a function here that creates a grid image with dots equally spaced every DISTANCE pixels where DISTANCE is a parameter. do not make it a compositor method.
+        
+
+
+
+
     </script>
 </body>
 </html>
