@@ -42,8 +42,15 @@ class Compositor4 {
       fabricCanvas: {
         backgroundColor: "#555555", // Darker gray color for the canvas background
       },
+      equalizeHeight:{
+        enabled: false,
+      },
       snapToGrid:{
         gridSize: 10,
+        enabled: false,
+      },
+      ignoreTransparentPixels:{
+        enabled:  true, 
       },
       erosColor: "magenta", // Add eros color preference
       activeBorderColor: "magenta", // Border color when button is active
@@ -107,7 +114,7 @@ class Compositor4 {
     this.drawCompositionOverlay();
     if (!this.images.length) this.createImages();
     this.setupImages();
-    this.toolbar = new Toolbar(this.fabricCanvas, this.preferences);
+    this.toolbar = new Toolbar(this);
     this.addToolbarButtons();
     this.bringToFront();
   }
@@ -120,7 +127,7 @@ class Compositor4 {
     this.drawCompositionOverlay();
     if (!this.images.length) this.createImages();
     this.setupImages();
-    this.toolbar = new Toolbar(this.fabricCanvas, this.preferences);
+    this.toolbar = new Toolbar(this);
     this.addToolbarButtons();
     this.bringToFront();
   }
@@ -129,7 +136,7 @@ class Compositor4 {
     console.log(data);
     this.bringToFront();
     
-    this.toolbar = new Toolbar(this.fabricCanvas, this.preferences);
+    this.toolbar = new Toolbar(this);
     this.addToolbarButtons();
     this.fabricCanvas.renderAll();
   }
@@ -219,10 +226,12 @@ class Compositor4 {
     this.toolbar.addAlignVerticalButton(); // Align vertical button
     this.toolbar.addAlignHorizontalButton(); // Align horizontal button
     this.toolbar.addAlignBothButton(); // Align both button
-    this.toolbar.addSnapToPixelButton(); // Snap to pixel button
+    this.toolbar.addsnapToGridButton(); // Snap to pixel button
     this.toolbar.addResetTransformButton(); // Reset transform button
     this.toolbar.addAdvancedResetTransformButton(); // Reset transform button
+    this.toolbar.addEqualizeHeightButton(); // Equalize height button
     this.toolbar.layoutToolbarButtons();
+
   }
 
   bringToFront() {  

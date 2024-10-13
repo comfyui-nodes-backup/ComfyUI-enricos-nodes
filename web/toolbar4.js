@@ -6,9 +6,10 @@ const ICON_URLS = {
   alignVertical: "https://icons.getbootstrap.com/assets/icons/border-middle.svg", // Icon for vertical centering
   alignHorizontal: "https://icons.getbootstrap.com/assets/icons/border-center.svg", // Icon for horizontal centering
   alignBoth: "https://icons.getbootstrap.com/assets/icons/border-inner.svg", // Icon for both horizontal and vertical centering
-  snapToPixel: "https://icons.getbootstrap.com/assets/icons/magnet.svg", // Icon for snap to pixel
+  snapToGrid: "https://icons.getbootstrap.com/assets/icons/magnet.svg", // Icon for snap to pixel
   resetTransform: "https://icons.getbootstrap.com/assets/icons/arrow-counterclockwise.svg", // Icon for reset transformations
   advancedResetTransform: "https://icons.getbootstrap.com/assets/icons/arrow-repeat.svg", // Icon for advanced reset transformations
+  equalizeHeight: "https://icons.getbootstrap.com/assets/icons/grid.svg", // Icon for equalize height
 };
 
 const BUTTON_INDICES = {
@@ -17,16 +18,19 @@ const BUTTON_INDICES = {
   alignVertical: 2,
   alignHorizontal: 3,
   alignBoth: 4,
-  snapToPixel: 5,
+  snapToGrid: 5,
   loadPreset: 6,
   savePreset: 7,
   resetTransform: 8,
+  advancedResetTransform: 9,
+  equalizeHeight: 10,
 };
 
 class Toolbar {
-  constructor(fabricCanvas, preferences) {
+  constructor({fabricCanvas, preferences,compositionRectangle}) {
     this.fabricCanvas = fabricCanvas;
     this.preferences = preferences;
+    this.compositionRectangle = compositionRectangle;
     this.toolbarButtons = [];
     this.createToolbar();
   }
@@ -50,7 +54,7 @@ class Toolbar {
       this.lastSelection = event.target;
     });
 
-    this.addSnapToPixelListeners();
+    this.addsnapToGridListeners();
   }
 
   async addToolbarButton(iconUrl, onClick, index, toggleable = false) {
@@ -270,11 +274,11 @@ class Toolbar {
     }
   }
 
-  addSnapToPixelListeners() {
+  addsnapToGridListeners() {
     const gridSize = this.preferences.snapToGrid.gridSize || 1; // Default to 1px if not specified
 
     this.fabricCanvas.on("object:scaling", (e) => {
-      if (this.preferences.snapToPixel) {
+      if (this.preferences.snapToGrid.enabled) {
         const obj = e.target;
         obj.set({
           scaleX: (Math.round((obj.scaleX * obj.width) / gridSize) * gridSize) / obj.width,
@@ -284,7 +288,7 @@ class Toolbar {
     });
 
     this.fabricCanvas.on("object:moving", (e) => {
-      if (this.preferences.snapToPixel) {
+      if (this.preferences.snapToGrid.enabled) {
         const obj = e.target;
         obj.set({
           left: Math.round(obj.left / gridSize) * gridSize,
@@ -300,14 +304,14 @@ class Toolbar {
   }
 
   // add a methods that sets a preference called snap to pixel and a button that toggles it with a magnet icon
-  async addSnapToPixelButton() {
+  async addsnapToGridButton() {
     const onClick = () => {
-      this.preferences.snapToPixel = !this.preferences.snapToPixel;
-      this.toolbarButtons[BUTTON_INDICES.snapToPixel].set("toggled", this.preferences.snapToPixel ? true : false);
+      this.preferences.snapToGrid.enabled = !this.preferences.snapToGrid.enabled;
+      this.toolbarButtons[BUTTON_INDICES.snapToGrid].set("toggled", this.preferences.snapToGrid.enabled ? true : false);
       this.fabricCanvas.renderAll();
     };
 
-    await this.addToolbarButton(ICON_URLS.snapToPixel, onClick, BUTTON_INDICES.snapToPixel, true);
+    await this.addToolbarButton(ICON_URLS.snapToGrid, onClick, BUTTON_INDICES.snapToGrid, true);
   }
 
   // add a method to add a reset transformations button
@@ -350,73 +354,52 @@ class Toolbar {
 
   async addAdvancedResetTransformButton() {
     const onClick = () => {
-      const selection = this.fabricCanvas.getActiveObject() ?? this.lastSelection;
-      const gridSize = this.preferences.gridSize || 1; // Default to 1px if not specified
+        const selection = this.fabricCanvas.getActiveObject() ?? this.lastSelection;
+        const gridSize = this.preferences.snapToGrid.gridSize || 1; // Default to 1px if not specified
 
-      if (selection) {
-        if (selection.type === "activeSelection") {
-          selection.forEachObject((obj) => {
-            let newLeft = obj.originalLeft || obj.left;
-            let newTop = obj.originalTop || obj.top;
-            let newWidth = obj.width * obj.scaleX;
-            let newHeight = obj.height * obj.scaleY;
+        if (selection && this.preferences.equalizeHeight.enabled) {
+            const targetHeight = this.compositionRectangle.height;
 
-            if (this.preferences.snapToPixel) {
-              newLeft = Math.round(newLeft / gridSize) * gridSize;
-              newTop = Math.round(newTop / gridSize) * gridSize;
-              newWidth = Math.round(newWidth / gridSize) * gridSize;
-              newHeight = Math.round(newHeight / gridSize) * gridSize;
+            const snapToGrid = (value) => Math.round(value / gridSize) * gridSize;
+
+            if (selection.type === "activeSelection") {
+                selection.forEachObject((obj) => {
+                    const scaleFactor = targetHeight / obj.height;
+                    obj.scale(scaleFactor);
+
+                    // Snap to grid
+                    obj.left = snapToGrid(obj.left);
+                    obj.top = snapToGrid(obj.top);
+
+                    obj.setCoords();
+                });
+            } else {
+                const scaleFactor = targetHeight / selection.height;
+                selection.scale(scaleFactor);
+
+                // Snap to grid
+                selection.left = snapToGrid(selection.left);
+                selection.top = snapToGrid(selection.top);
+
+                selection.setCoords();
             }
-
-            if (this.preferences.equalizeHeight) {
-              newHeight = this.fabricCanvas.height;
-            }
-
-            obj.set({
-              originX: "left",
-              originY: "top",
-              scaleX: newWidth / obj.width,
-              scaleY: newHeight / obj.height,
-              angle: 0,
-              left: newLeft,
-              top: newTop,
-            });
-            obj.setCoords();
-          });
-        } else {
-          let newLeft = selection.originalLeft || selection.left;
-          let newTop = selection.originalTop || selection.top;
-          let newWidth = selection.width * selection.scaleX;
-          let newHeight = selection.height * selection.scaleY;
-
-          if (this.preferences.snapToPixel) {
-            newLeft = Math.round(newLeft / gridSize) * gridSize;
-            newTop = Math.round(newTop / gridSize) * gridSize;
-            newWidth = Math.round(newWidth / gridSize) * gridSize;
-            newHeight = Math.round(newHeight / gridSize) * gridSize;
-          }
-
-          if (this.preferences.equalizeHeight) {
-            newHeight = this.fabricCanvas.height;
-          }
-
-          selection.set({
-            originX: "left",
-            originY: "top",
-            scaleX: newWidth / selection.width,
-            scaleY: newHeight / selection.height,
-            angle: 0,
-            left: newLeft,
-            top: newTop,
-          });
-          selection.setCoords();
+            this.fabricCanvas.renderAll();
         }
-        this.fabricCanvas.renderAll();
-      }
     };
 
     await this.addToolbarButton(ICON_URLS.advancedResetTransform, onClick, BUTTON_INDICES.advancedResetTransform);
-  }
+}
+
+  // add new button to toggle equalizeHeight.enabled in preferences
+    async addEqualizeHeightButton() {
+        const onClick = () => {
+        this.preferences.equalizeHeight.enabled = !this.preferences.equalizeHeight.enabled;
+        this.toolbarButtons[BUTTON_INDICES.equalizeHeight].set("toggled", this.preferences.equalizeHeight.enabled ? true : false);
+        this.fabricCanvas.renderAll();
+        };
+    
+        await this.addToolbarButton(ICON_URLS.equalizeHeight, onClick, BUTTON_INDICES.equalizeHeight, true);
+    }
 
 }
 
