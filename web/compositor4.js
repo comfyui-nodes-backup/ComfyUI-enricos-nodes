@@ -1,6 +1,6 @@
 class Compositor4 {
-  constructor(config) {
-    this.preferences = this.getPreferences();
+  constructor(config,preferences) {
+    this.preferences = preferences;
 
     // Register event listeners
     ["executed", "init"].forEach((eventType) => {
@@ -87,42 +87,7 @@ class Compositor4 {
     this.fabricCanvas.renderAll();
   }
 
-  // add a button that toggles the grid visibility
-
-  getPreferences() {
-    return {
-      composition: {
-        fill: "#444444", // Dark gray color for the rectangle
-        stroke: "green", // Green border
-        strokeWidth: 1,
-      },
-      toolbar: {
-        fill: "#666666",
-        height: 40,
-        position: { left: 0, top: 0 },
-        buttonSpacing: 4,
-        iconSize: 40, // Set the icon size to 30
-      },
-      fabricCanvas: {
-        backgroundColor: "#555555", // Darker gray color for the canvas background
-      },
-      equalizeHeight: {
-        enabled: false,
-      },
-      snapToGrid: {
-        gridSize: 10,
-        enabled: false,
-        isGridVisible: false,
-      },
-      ignoreTransparentPixels: {
-        enabled: true,
-      },
-      erosColor: "magenta", // Add eros color preference
-      activeBorderColor: "magenta", // Border color when button is active
-      inactiveBorderColor: "black", // Border color when button is inactive
-      toggledBorderColor: "orange", // Border color when button is toggled
-    };
-  }
+  
 
   createCanvas() {
     const canvas = document.createElement("canvas");

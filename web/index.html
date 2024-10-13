@@ -1,74 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Compositor4 Example</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/4.5.0/fabric.min.js"></script>
     <script src="toolbar4.js"></script>
     <script src="compositor4.js"></script>
-</head>
-<body>
+  </head>
+  <body>
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            // const query = 'cats'; // Change this to your desired search query
-            const query = 'matisse'; // Change this to your desired search query
-            try {
-                const images = await fetchArtInstituteImages(query, 5);
-                
-                const config = JSON.stringify({
-                    width: 800,
-                    height: 600,
-                    padding: 100,
-                    seed: 12345,
-                    onConfigChanged: 'configChanged',
-                    isConfigChanged: false,
-                    preset: '{}',
-                    images: images
-                });
+      document.addEventListener("DOMContentLoaded", async () => {
+        // const query = 'cats'; // Change this to your desired search query
+        const query = "matisse"; // Change this to your desired search query
+        try {
+          const images = await fetchArtInstituteImages(query, 6);
 
-                const compositor = new Compositor4(config);
-                // trigger the executed event
-                const event = new CustomEvent('executed', { detail: config });
-                document.dispatchEvent(event);
-            } catch (error) {
-                console.error('Error fetching images:', error);
-            }
-        });
+          const PREFERENCES = {
+            composition: {
+              fill: "#444444", // Dark gray color for the rectangle
+              stroke: "green", // Green border
+              strokeWidth: 1,
+            },
+            toolbar: {
+              fill: "#666666",
+              height: 40,
+              position: { left: 0, top: 0 },
+              buttonSpacing: 4,
+              iconSize: 40, // Set the icon size to 30
+            },
+            fabricCanvas: {
+              backgroundColor: "#555555", // Darker gray color for the canvas background
+            },
+            equalizeHeight: {
+              enabled: true,
+            },
+            snapToGrid: {
+              gridSize: 20,
+              enabled: false,
+              isGridVisible: false,
+            },
+            ignoreTransparentPixels: {
+              enabled: false,
+            },
+            erosColor: "magenta", // Add eros color preference
+            activeBorderColor: "magenta", // Border color when button is active
+            inactiveBorderColor: "black", // Border color when button is inactive
+            toggledBorderColor: "orange", // Border color when button is toggled
+          };
 
-        async function fetchArtInstituteImages(query, count) {
-            const searchUrl = `https://api.artic.edu/api/v1/artworks/search?q=${encodeURIComponent(query)}`;
-            const response = await fetch(searchUrl);
-            if (!response.ok) {
-                throw new Error(`Failed to fetch data: ${response.statusText}`);
-            }
-            const data = await response.json();
-            const artworks = data.data.slice(0, count);
+          const config = JSON.stringify({
+            width: 800,
+            height: 600,
+            padding: 100,
+            seed: 12345,
+            onConfigChanged: "configChanged",
+            isConfigChanged: false,
+            preset: "{}",
+            images: images,
+          });
 
-            const imageUrls = await Promise.all(artworks.map(async (artwork) => {
-                const artworkResponse = await fetch(artwork.api_link);
-                if (!artworkResponse.ok) {
-                    console.warn(`Failed to fetch artwork details for ${artwork.id}: ${artworkResponse.statusText}`);
-                    return null;
-                }
-                const artworkData = await artworkResponse.json();
-                const imageId = artworkData.data.image_id;
-                if (!imageId) {
-                    console.warn(`No image_id found for artwork: ${artwork.id}`);
-                    return null;
-                }
-                return `https://www.artic.edu/iiif/2/${imageId}/full/843,/0/default.jpg`;
-            }));
-
-            return imageUrls.filter(url => url !== null);
+          const compositor = new Compositor4(config,PREFERENCES);
+          // trigger the executed event
+          const event = new CustomEvent("executed", { detail: config });
+          document.dispatchEvent(event);
+        } catch (error) {
+          console.error("Error fetching images:", error);
         }
+      });
 
-        //add a function here that creates a grid image with dots equally spaced every DISTANCE pixels where DISTANCE is a parameter. do not make it a compositor method.
-        
+      async function fetchArtInstituteImages(query, count) {
+        const searchUrl = `https://api.artic.edu/api/v1/artworks/search?q=${encodeURIComponent(query)}`;
+        const response = await fetch(searchUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch data: ${response.statusText}`);
+        }
+        const data = await response.json();
+        const artworks = data.data.slice(0, count);
 
+        const imageUrls = await Promise.all(
+          artworks.map(async (artwork) => {
+            const artworkResponse = await fetch(artwork.api_link);
+            if (!artworkResponse.ok) {
+              console.warn(`Failed to fetch artwork details for ${artwork.id}: ${artworkResponse.statusText}`);
+              return null;
+            }
+            const artworkData = await artworkResponse.json();
+            const imageId = artworkData.data.image_id;
+            if (!imageId) {
+              console.warn(`No image_id found for artwork: ${artwork.id}`);
+              return null;
+            }
+            return `https://www.artic.edu/iiif/2/${imageId}/full/843,/0/default.jpg`;
+          })
+        );
 
+        return imageUrls.filter((url) => url !== null);
+      }
 
-
+      //add a function here that creates a grid image with dots equally spaced every DISTANCE pixels where DISTANCE is a parameter. do not make it a compositor method.
     </script>
-</body>
+  </body>
 </html>

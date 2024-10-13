@@ -13,7 +13,7 @@ const ICON_URLS = {
   toggleGrid: "https://icons.getbootstrap.com/assets/icons/border.svg", // Icon for toggle grid
 };
 
-const BUTTON_INDICES = ["export", "loadPreset", "savePreset", "alignVertical", "alignHorizontal", "alignBoth", "resetTransform", "advancedResetTransform", "bullseye", "snapToGrid", "equalizeHeight", "toggleGrid"];
+const BUTTON_INDICES = ["export", "loadPreset", "savePreset", "alignVertical", "alignHorizontal", "alignBoth", "resetTransform", "advancedResetTransform", "equalizeHeight", "snapToGrid","toggleGrid", "bullseye"];
 
 class Toolbar {
   constructor(compositor) {
@@ -38,10 +38,12 @@ class Toolbar {
     this.addResetTransformButton(); // Reset transform button
     this.addAdvancedResetTransformButton(); // Reset transform button
 
-    this.addBullseyeButton();
-    this.addsnapToGridButton(); // Snap to pixel button
-    this.addEqualizeHeightButton(); // Equalize height button
+    
+    
+    this.addEqualizeHeightButton(); // Equalize height button    
     this.addToggleGridButton(); // Toggle grid button
+    this.addsnapToGridButton(); // Snap to pixel button
+    this.addBullseyeButton();
     this.layoutToolbarButtons();
   }
 
