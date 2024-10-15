@@ -1,44 +1,11 @@
 import Compositor4 from "./compositor4.js";
-import { fabric } from "./fabric.js";
+
 class Init {
-  async initEditor(container) {
+  async initEditor(container, preferences) {
     // const query = 'cats'; // Change this to your desired search query
     const query = "matisse"; // Change this to your desired search query
     try {
       const images = await this.fetchArtInstituteImages(query, 6);
-
-      const PREFERENCES = {
-        composition: {
-          fill: "#444444", // Dark gray color for the rectangle
-          stroke: "green", // Green border
-          strokeWidth: 1,
-        },
-        toolbar: {
-          fill: "#666666",
-          height: 40,
-          position: { left: 0, top: 0 },
-          buttonSpacing: 4,
-          iconSize: 40, // Set the icon size to 30
-        },
-        fabricCanvas: {
-          backgroundColor: "#555555", // Darker gray color for the canvas background
-        },
-        equalizeHeight: {
-          enabled: true,
-        },
-        snapToGrid: {
-          gridSize: 20,
-          enabled: false,
-          isGridVisible: false,
-        },
-        ignoreTransparentPixels: {
-          enabled: false,
-        },
-        erosColor: "magenta", // Add eros color preference
-        activeBorderColor: "magenta", // Border color when button is active
-        inactiveBorderColor: "black", // Border color when button is inactive
-        toggledBorderColor: "orange", // Border color when button is toggled
-      };
 
       const config = JSON.stringify({
         width: 800,
@@ -52,7 +19,7 @@ class Init {
       });
       // const container = document.createElement("div");
       // container.id = "compositor4";
-      const compositor = new Compositor4(container, config, PREFERENCES);
+      const compositor = new Compositor4(container, config, preferences);
       // trigger the executed event
       const event = new CustomEvent("executed", { detail: config });
       document.dispatchEvent(event);

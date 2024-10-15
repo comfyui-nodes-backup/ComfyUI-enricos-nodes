@@ -1,3 +1,5 @@
+
+
 export const ICON_URLS = {
   loadPreset: "https://icons.getbootstrap.com/assets/icons/file-earmark-arrow-up.svg",
   savePreset: "https://icons.getbootstrap.com/assets/icons/file-earmark-arrow-down.svg",
@@ -203,10 +205,20 @@ export class Toolbar {
   }
 
   async addExportButton() {
-    const onClick = () => {
+    const  onClick = async() => {
       console.log("Exporting image...");
       const base64Image = this.compositor.exportAsBase64();
-      this.compositor.downloadFile(base64Image, `${this.compositor.seed}.png`);
+      //
+      if(this.preferences.standalone){
+        this.compositor.downloadFile(base64Image, `${this.compositor.seed}.png`);
+        
+      }else{
+        const result = await this.compositor.uploadImage(base64Image);
+        // 
+        this.compositor.containerEl.value = `compositor/${result.name} [temp]`;
+        console.log(result);
+      }      
+      
     };
 
     await this.addToolbarButton(ICON_URLS.export, onClick, BUTTON_INDICES.indexOf("export"));

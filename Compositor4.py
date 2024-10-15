@@ -43,6 +43,7 @@ class Compositor4:
             "hidden": {
                 "extra_pnginfo": "EXTRA_PNGINFO",
                 "node_id": "UNIQUE_ID",
+                "test":"STRING"
             },
         }
 
@@ -56,7 +57,8 @@ class Compositor4:
         node_id = kwargs.pop('node_id', None)
 
 
-        imageName = kwargs.get('imageName', "new.png")
+        imageName = kwargs.get('test', "new.png")
+        #compositionName = kwargs.get('test', "new.png")
 
         config = kwargs.get('config', "default")
         padding = config["padding"]
@@ -92,15 +94,16 @@ class Compositor4:
         }
 
         # break and send a message to the gui as if it was "executed" below
-        detail = {"output": ui, "node": node_id}
-        PromptServer.instance.send_sync("compositor_init", detail)
+        # detail = {"output": ui, "node": node_id}
+        # PromptServer.instance.send_sync("compositor_init", detail)
 
         imageExists = folder_paths.exists_annotated_filepath(imageName)
         # block when config changed
-        if imageName == "new.png" or not imageExists or configChanged:
+        #if imageName == "new.png" or not imageExists or configChanged:
+        if not imageExists or configChanged:
             return {
                 "ui": ui,
-                "result": (ExecutionBlocker(None), ExecutionBlocker(None))
+                 "result": (ExecutionBlocker(None), ExecutionBlocker(None))
             }
 
         image_path = folder_paths.get_annotated_filepath(imageName)

@@ -1,6 +1,8 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
-
+import Compositor4 from "./compositor4.js";
+import { fabric } from "./fabric.js";
+import  {PREFERENCES, addCompositorPreferences, getPreferences} from "./compositor4preferences.js";
 import Init from "./init.js";
 
 const COMPOSITOR = Symbol();
@@ -21,23 +23,26 @@ function getCompositorWidget(node, widgetName) {
 app.registerExtension({
   name: "Comfy.Compositor4",
 
-//   async getCustomWidgets(app) {
-//     return {
-//         async COMPOSITOR(node, inputName, inputData, app) {
-            
-//             const container = document.createElement("div");
-//             await this.initEditor(container);
+  //   async getCustomWidgets(app) {
+  //     return {
+  //         async COMPOSITOR(node, inputName, inputData, app) {
 
-//             /**
-//              * NOTE: hideOnZoom:false FIXES not being able to take screenshot and disappearing on zoom out
-//              * but creates some inconsistencies as lines get too small to be rendered properly
-//              */
-//             return {widget: node.addDOMWidget(inputName, "COMPOSITOR4", container, {hideOnZoom: false})};
-//         },
-//     };
-// },
+  //             const container = document.createElement("div");
+  //             await this.initEditor(container);
+
+  //             /**
+  //              * NOTE: hideOnZoom:false FIXES not being able to take screenshot and disappearing on zoom out
+  //              * but creates some inconsistencies as lines get too small to be rendered properly
+  //              */
+  //             return {widget: node.addDOMWidget(inputName, "COMPOSITOR4", container, {hideOnZoom: false})};
+  //         },
+  //     };
+  // },
 
   async setup(app) {
+
+    addCompositorPreferences(PREFERENCES);
+
     function executingMessageHandler(event) {}
 
     function executedMessageHandler(event, a, b) {}
@@ -82,31 +87,40 @@ app.registerExtension({
     el.style.backgroundColor = "transparent";
     el.width = 800;
     el.height = 600;
-    el.id="compositor4container";
-    
-    
-    
-    
+    el.id = "compositor4container";
+    el.value = "foobar.jpg";
+
+    const imageNameWidget = getCompositorWidget(node, "imageName");
+
     
     node.editorWidget = node.addDOMWidget("test", "test", el, {
-      serialize: false,
+      serialize: true,
       hideOnZoom: false,
+      resizable: false,
+
+      getValue() {
+        console.log("getValue", el.value);
+        return el.value;
+      },
+      setValue(v2) {
+        // imageNameWidget.value = v2;
+        console.log("setValue", v2);
+        el.value = v2;
+      },
     });
-    
+
+    // const originalSerializeValue = node.editorWidget.serializeValue;
+    // node.editorWidget.serializeValue = (e) => {
+    //   console.log("serializeValue",e);
+    //   //return el.value;
+    // };
 
     const init = new Init();
-    const compositor = await init.initEditor(el);
-    console.log("compositor", compositor);
-    node.setSize(compositor.getWidgetDimensions());
+    const preferences = getPreferences()
+    const editor = await init.initEditor(el, preferences);
+    console.log("editor", editor);
+    node.setSize(editor.getWidgetDimensions());
 
     node.setDirtyCanvas(true, true);
-  }
-
-
-
-  
+  },
 });
-
-
-
-

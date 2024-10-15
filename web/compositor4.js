@@ -1,3 +1,4 @@
+import { api } from "../../scripts/api.js";
 import { Toolbar, ICON_URLS, BUTTON_INDICES, fetchSVGIcon } from './toolbar4.js';
 class Compositor4 {
   
@@ -292,6 +293,7 @@ class Compositor4 {
     this.fabricCanvas.renderAll();
   }
 
+  /** downloads the iamge */
   downloadFile(content, filename) {
     let link = document.createElement("a");
 
@@ -317,6 +319,7 @@ class Compositor4 {
     }
   }
 
+  /** saves the image as base64*/
   exportAsBase64() {
     return this.fabricCanvas.toDataURL({
       format: "png",
@@ -371,6 +374,41 @@ class Compositor4 {
     // Redraw the new images on the canvas
     this.setupImages();
   }
+
+  dataURLToBlob(dataURL){
+    const parts = dataURL.split(',');
+    const mime = parts[0].match(/:(.*?);/)[1];
+    const binary = atob(parts[1]);
+    const array = [];
+    for (let i = 0; i < binary.length; i++) {
+        array.push(binary.charCodeAt(i));
+    }
+    return new Blob([new Uint8Array(array)], {type: mime});
+}
+
+  // take #compositor3.js as example and make a version of uploadImage that takes the ouptupt of exportAsBase64and uploads it to the /upload/image endpoint, make the method async, keep the naming convention and the logic to hanle the subfolder
+  async uploadImage(dataURL){
+    const b64 = this.dataURLToBlob(dataURL);
+    const UPLOAD_ENDPOINT = "/upload/image";
+    
+    const name = `${+new Date()}.png`;
+    const file = new File([b64], name);
+    const body = new FormData();
+
+    body.append("image", file);
+    body.append("subfolder", "compositor");
+    body.append("type", "temp");
+
+    const result = await api.fetchApi(UPLOAD_ENDPOINT, {
+        method: "POST",
+        body,
+    })
+
+
+    return await result.json()
+    
+  }
+  
 }
 
 export default Compositor4;
