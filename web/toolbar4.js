@@ -1,4 +1,4 @@
-const ICON_URLS = {
+export const ICON_URLS = {
   loadPreset: "https://icons.getbootstrap.com/assets/icons/file-earmark-arrow-up.svg",
   savePreset: "https://icons.getbootstrap.com/assets/icons/file-earmark-arrow-down.svg",
   export: "https://icons.getbootstrap.com/assets/icons/camera.svg",
@@ -13,9 +13,9 @@ const ICON_URLS = {
   toggleGrid: "https://icons.getbootstrap.com/assets/icons/border.svg", // Icon for toggle grid
 };
 
-const BUTTON_INDICES = ["export", "loadPreset", "savePreset", "alignVertical", "alignHorizontal", "alignBoth", "resetTransform", "advancedResetTransform", "equalizeHeight", "snapToGrid","toggleGrid", "bullseye"];
+export const BUTTON_INDICES = ["export", "loadPreset", "savePreset", "alignVertical", "alignHorizontal", "alignBoth", "resetTransform", "advancedResetTransform", "equalizeHeight", "snapToGrid", "toggleGrid", "bullseye"];
 
-class Toolbar {
+export class Toolbar {
   constructor(compositor) {
     this.fabricCanvas = compositor.fabricCanvas;
     this.preferences = compositor.preferences;
@@ -27,19 +27,13 @@ class Toolbar {
 
   addToolbarButtons() {
     this.addExportButton();
-
     this.addSavePresetButton();
     this.addLoadPresetButton();
-
     this.addAlignVerticalButton(); // Align vertical button
     this.addAlignHorizontalButton(); // Align horizontal button
     this.addAlignBothButton(); // Align both button
-
     this.addResetTransformButton(); // Reset transform button
     this.addAdvancedResetTransformButton(); // Reset transform button
-
-    
-    
     this.addEqualizeHeightButton(); // Equalize height button    
     this.addToggleGridButton(); // Toggle grid button
     this.addsnapToGridButton(); // Snap to pixel button
@@ -428,7 +422,7 @@ class Toolbar {
   }
 }
 
-async function fetchSVGIcon(url) {
+export async function fetchSVGIcon(url) {
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch SVG icon from ${url}`);

@@ -5,13 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Compositor4 Example</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/4.5.0/fabric.min.js"></script>
-    <script src="toolbar4.js"></script>
-    <script src="compositor4.js"></script>
-  </head>
-  <body>
-    <script>
+    <script type="module" src="toolbar4.js"></script>
+    <script type="module">
+      import Compositor4 from './compositor4.js';
+      import { Toolbar, ICON_URLS, BUTTON_INDICES, fetchSVGIcon } from './toolbar4.js';
       document.addEventListener("DOMContentLoaded", async () => {
-        // const query = 'cats'; // Change this to your desired search query
         const query = "matisse"; // Change this to your desired search query
         try {
           const images = await fetchArtInstituteImages(query, 6);
@@ -57,10 +55,10 @@
             onConfigChanged: "configChanged",
             isConfigChanged: false,
             preset: "{}",
-            images: images,
+            images: images,            
           });
 
-          const compositor = new Compositor4(config,PREFERENCES);
+          const compositor = new Compositor4(document.getElementById("compositor"), config, PREFERENCES);
           // trigger the executed event
           const event = new CustomEvent("executed", { detail: config });
           document.dispatchEvent(event);
@@ -98,7 +96,35 @@
         return imageUrls.filter((url) => url !== null);
       }
 
-      //add a function here that creates a grid image with dots equally spaced every DISTANCE pixels where DISTANCE is a parameter. do not make it a compositor method.
+      // Add a function here that creates a grid image with dots equally spaced every DISTANCE pixels where DISTANCE is a parameter. Do not make it a compositor method.
+      function createGridImageWithDots(distance) {
+        const canvas = document.createElement("canvas");
+        canvas.width = 800; // Example width
+        canvas.height = 600; // Example height
+        const ctx = canvas.getContext("2d");
+
+        // Set the background to white
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Set the fill color for the dots to black
+        ctx.fillStyle = "black";
+
+        // Draw 1x1 pixel dots
+        for (let x = distance; x < canvas.width; x += distance) {
+          for (let y = distance; y < canvas.height; y += distance) {
+            ctx.fillRect(x, y, 1, 1);
+          }
+        }
+
+        document.body.appendChild(canvas);
+      }
+
+      // Example usage of the function
+      createGridImageWithDots(20);
     </script>
+  </head>
+  <body>
+    <div id="compositor"></div>
   </body>
 </html>

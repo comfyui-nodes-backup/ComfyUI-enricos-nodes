@@ -1,7 +1,9 @@
+import { Toolbar, ICON_URLS, BUTTON_INDICES, fetchSVGIcon } from './toolbar4.js';
 class Compositor4 {
-  constructor(config,preferences) {
+  
+  constructor(containerEl,config,preferences) {
     this.preferences = preferences;
-
+    this.containerEl = containerEl;
     // Register event listeners
     ["executed", "init"].forEach((eventType) => {
       document.addEventListener(eventType, (event) => this.setup(event.detail));
@@ -12,6 +14,47 @@ class Compositor4 {
       this.replaceImages(event.detail.newImages);
     });
   }
+
+  // add a method that returns the width and height of the compositor including padding
+
+  // getDimensions() {
+  //   return {
+  //     width: this.width + this.padding * 2,
+  //     height: this.height + this.padding * 2,
+  //   };
+  // }
+
+  // //add method that retuns the canvas dimensions
+  // getCanvasDimensions() {
+  //   return {
+  //     width: this.width,
+  //     height: this.height,
+  //   };
+  // }
+
+  // add a method that returns fabric canvas dimensions
+  getFabricCanvasDimensions() {
+    return {
+      width: this.fabricCanvas.width,
+      height: this.fabricCanvas.height,
+
+    };
+  }
+
+  getFabricCanvasDimensionsArray() {
+    return [
+      this.fabricCanvas.width,
+      this.fabricCanvas.height
+    ];
+  }
+
+  getWidgetDimensions() {
+    return [
+        this.fabricCanvas.width + 19,
+        this.fabricCanvas.height + 113
+    ];
+  }
+
 
   setupConfig(config) {
     const parsedConfig = JSON.parse(config);
@@ -94,7 +137,9 @@ class Compositor4 {
     canvas.id = "fcanvas";
     canvas.width = this.width + this.padding * 2;
     canvas.height = this.height + this.padding * 2;
-    document.body.appendChild(canvas);
+    
+    this.containerEl.appendChild(canvas)
+    
 
     this.fabricCanvas = new fabric.Canvas(canvas.id, {
       preserveObjectStacking: true,
@@ -327,3 +372,5 @@ class Compositor4 {
     this.setupImages();
   }
 }
+
+export default Compositor4;
