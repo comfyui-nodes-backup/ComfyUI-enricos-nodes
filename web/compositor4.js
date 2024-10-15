@@ -18,21 +18,6 @@ class Compositor4 {
 
   // add a method that returns the width and height of the compositor including padding
 
-  // getDimensions() {
-  //   return {
-  //     width: this.width + this.padding * 2,
-  //     height: this.height + this.padding * 2,
-  //   };
-  // }
-
-  // //add method that retuns the canvas dimensions
-  // getCanvasDimensions() {
-  //   return {
-  //     width: this.width,
-  //     height: this.height,
-  //   };
-  // }
-
   // add a method that returns fabric canvas dimensions
   getFabricCanvasDimensions() {
     return {

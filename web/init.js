@@ -1,7 +1,7 @@
 import Compositor4 from "./compositor4.js";
 
 class Init {
-  async initEditor(container, preferences) {
+  async initEditor(container, preferences,_config,_images) {
     // const query = 'cats'; // Change this to your desired search query
     const query = "matisse"; // Change this to your desired search query
     try {

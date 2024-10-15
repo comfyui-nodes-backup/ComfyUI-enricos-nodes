@@ -45,7 +45,20 @@ app.registerExtension({
 
     function executingMessageHandler(event) {}
 
-    function executedMessageHandler(event, a, b) {}
+    async function executedMessageHandler(event, a, b) {
+      const node = app.graph.getNodeById(event.detail.node);
+      if(!isCompositor4(node)) return;
+      console.log("executedMessageHandler", event, a, b);
+      console.log(event.detail, node);
+
+      const init = new Init();
+      const preferences = getPreferences()
+      const editor = await init.initEditor(node._el, preferences, event.detail.config, event.detail.images);
+      console.log("editor", editor);
+      node.setSize(editor.getWidgetDimensions());
+
+      node.setDirtyCanvas(true, true);
+    }
 
     function configureHandler() {}
 
@@ -58,6 +71,7 @@ app.registerExtension({
     function changeWorkflowHandler() {}
 
     api.addEventListener("compositor_init", executedMessageHandler);
+    api.addEventListener("compositor_config_changed", executedMessageHandler);
     api.addEventListener("graphChanged", graphChangedHandler);
     api.addEventListener("change_workflow", changeWorkflowHandler);
     api.addEventListener("execution_start", executionStartHandler);
@@ -90,21 +104,18 @@ app.registerExtension({
     el.id = "compositor4container";
     el.value = "foobar.jpg";
 
-    const imageNameWidget = getCompositorWidget(node, "imageName");
-
-    
-    node.editorWidget = node.addDOMWidget("test", "test", el, {
+    //const imageNameWidget = getCompositorWidget(node, "imageName");
+    node._el = el;
+    node.editorWidget = node.addDOMWidget("composite", "composite", el, {
       serialize: true,
       hideOnZoom: false,
       resizable: false,
 
       getValue() {
-        console.log("getValue", el.value);
+        
         return el.value;
       },
-      setValue(v2) {
-        // imageNameWidget.value = v2;
-        console.log("setValue", v2);
+      setValue(v2) {        
         el.value = v2;
       },
     });
@@ -115,12 +126,12 @@ app.registerExtension({
     //   //return el.value;
     // };
 
-    const init = new Init();
-    const preferences = getPreferences()
-    const editor = await init.initEditor(el, preferences);
-    console.log("editor", editor);
-    node.setSize(editor.getWidgetDimensions());
+    //const init = new Init();
+    //const preferences = getPreferences()
+    //const editor = await init.initEditor(el, preferences);
+    //console.log("editor", editor);
+    //node.setSize(editor.getWidgetDimensions());
 
-    node.setDirtyCanvas(true, true);
+    //node.setDirtyCanvas(true, true);
   },
 });
