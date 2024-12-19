@@ -2,27 +2,33 @@ import Compositor4 from "./compositor4.js";
 
 class Init {
   async initEditor(container, preferences,_config,_images) {
+    console.log("initEditor", container, preferences,_config,_images);
     // const query = 'cats'; // Change this to your desired search query
     const query = "matisse"; // Change this to your desired search query
     try {
-      const images = await this.fetchArtInstituteImages(query, 6);
-
+        
+      //const images = await this.fetchArtInstituteImages(query, 6);
+      const images = _images;
+    
       const config = JSON.stringify({
-        width: 800,
-        height: 600,
-        padding: 100,
-        seed: 12345,
-        onConfigChanged: "configChanged",
-        isConfigChanged: false,
+        width: _config.width[0],
+        height: _config.height[0],
+        padding: _config.padding[0],
+        seed: "1234",
+        onConfigChanged: _config.onConfigChanged[0],
+        isConfigChanged: _config.configChanged[0],
         preset: "{}",
-        images: images,
+        images: _images,
       });
+      //  const config = JSON.stringify(_config);
+
       // const container = document.createElement("div");
       // container.id = "compositor4";
       const compositor = new Compositor4(container, config, preferences);
+      compositor.setup(config)
       // trigger the executed event
-      const event = new CustomEvent("executed", { detail: config });
-      document.dispatchEvent(event);
+      // const event = new CustomEvent("executed", { detail: config });
+      // document.dispatchEvent(event);
 
       return compositor;
     } catch (error) {

@@ -5,6 +5,8 @@ from .CompositorConfig3 import CompositorConfig3
 from .CompositorConfig4 import CompositorConfig4
 from .CompositorTools3 import CompositorTools3
 from .CompositorTransformsOut3 import CompositorTransformsOutV3
+from .Cardlooper import CardLooper
+from .Card import Card
 
 NODE_CLASS_MAPPINGS = {
     "Compositor3": Compositor3,
@@ -13,6 +15,8 @@ NODE_CLASS_MAPPINGS = {
     "CompositorConfig4": CompositorConfig4,
     "CompositorTools3": CompositorTools3,
     "CompositorTransformsOutV3": CompositorTransformsOutV3,
+    "CardLooper": CardLooper,
+    "Card": Card,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -22,6 +26,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "CompositorConfig4": "💜 Compositor Config (V4)",
     "CompositorTools3": "💜 Compositor Tools (V3) Experimental",
     "CompositorTransformsOutV3": "💜 Compositor Transforms Output (V3)",
+    "CardLooper": "💜 Card Looper",
+    "Card": "💜 Card",
 }
 
 EXTENSION_NAME = "Enrico"

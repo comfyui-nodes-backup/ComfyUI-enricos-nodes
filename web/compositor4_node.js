@@ -51,9 +51,13 @@ app.registerExtension({
       console.log("executedMessageHandler", event, a, b);
       console.log(event.detail, node);
 
+      // this initializs the compositor fully, which is not necessary, we just want to reconfigure it
+      // happens as we have moved it from the nodeCreated to here
       const init = new Init();
-      const preferences = getPreferences()
-      const editor = await init.initEditor(node._el, preferences, event.detail.config, event.detail.images);
+      const preferences = getPreferences();
+      const images = [...event.detail.output.names];
+      const config = event.detail.output;
+      const editor = await init.initEditor(node._el, preferences, config, images);
       console.log("editor", editor);
       node.setSize(editor.getWidgetDimensions());
 
@@ -68,6 +72,11 @@ app.registerExtension({
 
     function graphChangedHandler() {}
 
+    function executionInterrupted(event) {
+      console.log("executionInterrupted",event);
+    }
+    
+
     function changeWorkflowHandler() {}
 
     api.addEventListener("compositor_init", executedMessageHandler);
@@ -76,6 +85,7 @@ app.registerExtension({
     api.addEventListener("change_workflow", changeWorkflowHandler);
     api.addEventListener("execution_start", executionStartHandler);
     api.addEventListener("execution_cached", executionCachedHandler);
+    api.addEventListener("execution_interrupted", executionInterrupted);
     api.addEventListener("executing", executingMessageHandler);
     /** when a node returns an ui element */
     api.addEventListener("executed", executedMessageHandler);

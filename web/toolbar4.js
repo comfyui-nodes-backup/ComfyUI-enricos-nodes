@@ -216,6 +216,7 @@ export class Toolbar {
         const result = await this.compositor.uploadImage(base64Image);
         // 
         this.compositor.containerEl.value = `compositor/${result.name} [temp]`;
+        //this.compositor.containerEl.value = `compositor/${result.name}`;
         console.log(result);
       }      
       

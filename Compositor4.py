@@ -51,7 +51,7 @@ class Compositor4:
         if(configChanged):
 
             #needed.append("stop")
-            print("config has changed",needed);
+            #print("config has changed",needed);
 
             ui = {
                 "composite": ("value",),
@@ -66,7 +66,9 @@ class Compositor4:
                 # "awaited": [self.result],
                 "configChanged": [configChanged],
                 "onConfigChanged": [onConfigChanged],
-                "stop":[True]
+                "stop":[True],
+                # seed/initiaized
+                #preset
             }
 
             # break and send a message to the gui as if it was "executed" below
@@ -74,16 +76,16 @@ class Compositor4:
             PromptServer.instance.send_sync("compositor_config_changed", detail)
 
 
-            from comfy.model_management import InterruptProcessingException
-            raise InterruptProcessingException()
+            #from comfy.model_management import InterruptProcessingException
+            #raise InterruptProcessingException()
 
         return needed
 
-    @classmethod
-    def IS_CHANGED(cls, **kwargs):
-        fabricData = kwargs.get("fabricData")
-        # print(fabricData)
-        return fabricData
+    # @classmethod
+    # def IS_CHANGED(cls, **kwargs):
+    #     fabricData = kwargs.get("fabricData")
+    #     # print(fabricData)
+    #     return fabricData
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -92,7 +94,7 @@ class Compositor4:
                 "config": ("COMPOSITOR_CONFIG", {"forceInput": True}),
                 #"fabricData": ("STRING", {"default": "{}"}),
                 #"imageName": ("STRING", {"default": "new.png"}),
-
+                "composite": "STRING",
 
             },
             "optional": {
@@ -102,7 +104,7 @@ class Compositor4:
             "hidden": {
                 "extra_pnginfo": "EXTRA_PNGINFO",
                 "node_id": "UNIQUE_ID",
-                "composite": "STRING",
+                
 
 
             },
@@ -112,6 +114,7 @@ class Compositor4:
     RETURN_NAMES = ( "image","transforms")
     FUNCTION = "composite"
     CATEGORY = "image"
+    # OUTPUT_NODE  = True
 
     def composite(self, **kwargs):
         print("composite")
@@ -143,13 +146,18 @@ class Compositor4:
         imageExists = folder_paths.exists_annotated_filepath(imageName)
         # block when config changed
         # if imageName == "new.png" or not imageExists or configChanged:
-        # if not imageExists or configChanged:
+        if not imageExists or configChanged:
         #     return {
         #         "ui": ui,
         #         "result": (ExecutionBlocker(None), ExecutionBlocker(None))
         #     }
+            print("does not exist")
+            imageName = "new.png"
 
         image_path = folder_paths.get_annotated_filepath(imageName)
+        # copy the image at imageName to the output folder filename imageName
+        #shutil.copyfile(image_path, folder_paths.get_output_filepath(imageName))
+
         i = Image.open(image_path)
         i = ImageOps.exif_transpose(i)
         if i.mode == 'I':

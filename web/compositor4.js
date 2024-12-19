@@ -6,14 +6,14 @@ class Compositor4 {
     this.preferences = preferences;
     this.containerEl = containerEl;
     // Register event listeners
-    ["executed", "init"].forEach((eventType) => {
-      document.addEventListener(eventType, (event) => this.setup(event.detail));
-    });
+    // ["executed", "init"].forEach((eventType) => {
+    //   document.addEventListener(eventType, (event) => this.setup(event.detail));
+    // });
 
-    // test event
-    document.addEventListener("replace", (event) => {
-      this.replaceImages(event.detail.newImages);
-    });
+    // // test event
+    // document.addEventListener("replace", (event) => {
+    //   this.replaceImages(event.detail.newImages);
+    // });
   }
 
   // add a method that returns the width and height of the compositor including padding
@@ -383,6 +383,7 @@ class Compositor4 {
     body.append("image", file);
     body.append("subfolder", "compositor");
     body.append("type", "temp");
+    //body.append("type", "output");
 
     const result = await api.fetchApi(UPLOAD_ENDPOINT, {
         method: "POST",
