@@ -589,10 +589,10 @@ class Editor {
     selected;
 
     /** settings */
-    CANVAS_BORDER_COLOR;
-    COMPOSITION_BORDER_COLOR;
-    COMPOSITION_BORDER_SIZE;
-    COMPOSITION_BACKGROUND_COLOR;
+    CANVAS_BORDER_COLOR = "#00b300b0";
+    COMPOSITION_BORDER_COLOR = "#00b300b0";
+    COMPOSITION_BORDER_SIZE = 2;
+    COMPOSITION_BACKGROUND_COLOR = "rgba(0,0,0,0.2)";
 
     compositionArea;
     compositionBorder;
@@ -697,7 +697,7 @@ class Editor {
             tooltip: "give an hex code with alpha, e.g.: #00b300b0, it's the area controlled by 'padding' size outside the  output that will not be exported but used for manipulation",
             type: "text",
             defaultValue: "#00b300b0",
-            onChange: (newVal, oldVal) => {
+            onChange: (newVal, oldVal) => {                
                 // console.log(newVal, this);
             },
         });
@@ -756,10 +756,10 @@ class Editor {
     }
 
     getCompositorSettings() {
-        this.CANVAS_BORDER_COLOR = app.extensionManager.setting.get("Compositor3.Canvas.BORDER_COLOR");
-        this.COMPOSITION_BORDER_COLOR = app.extensionManager.setting.get("Compositor3.Composition.BORDER_COLOR");
-        this.COMPOSITION_BORDER_SIZE = app.extensionManager.setting.get("Compositor3.Composition.BORDER_SIZE");
-        this.COMPOSITION_BACKGROUND_COLOR = app.extensionManager.setting.get("Compositor3.Composition.BACKGROUND_COLOR");
+        // this.CANVAS_BORDER_COLOR = app.extensionManager.setting.get("Compositor3.Canvas.BORDER_COLOR");
+        // this.COMPOSITION_BORDER_COLOR = app.extensionManager.setting.get("Compositor3.Composition.BORDER_COLOR");
+        // this.COMPOSITION_BORDER_SIZE = app.extensionManager.setting.get("Compositor3.Composition.BORDER_SIZE");
+        // this.COMPOSITION_BACKGROUND_COLOR = app.extensionManager.setting.get("Compositor3.Composition.BACKGROUND_COLOR");
     }
 
     static getRandomCompositorUniqueId() {
@@ -769,12 +769,9 @@ class Editor {
     }
 
     static createCompositorContainerDiv() {
-        const container = document.createElement("div");
-        
-        container.style.backgroundColor = "rgba(15,0,25,0.25)";
-        
-        container.style.textAlign = "center";
-        
+        const container = document.createElement("div");        
+        container.style.backgroundColor = "rgba(15,0,25,0.25)";        
+        container.style.textAlign = "center";        
         return container;
     }
 
@@ -789,9 +786,7 @@ class Editor {
 
     static createCanvasElement() {
         const canvas = document.createElement("canvas");
-        canvas.id = Editor.getRandomCompositorUniqueId();
-        
-        
+        canvas.id = Editor.getRandomCompositorUniqueId();        
         return canvas;
     }
 
@@ -1033,6 +1028,7 @@ class Editor {
             body.append('filename', outputValue);
             body.append('node_id', node_id);
             body.append('overwrite', "true");
+
 
             node.compositorInstance.compositionBorder.set("stroke", node.compositorInstance.COMPOSITION_BORDER_COLOR);
             node.compositorInstance.fcanvas.renderAll();
@@ -1286,6 +1282,7 @@ class Editor {
      */
     createCompositionBorder() {
         // p, w, h, node
+        debugger;
         const compositionBorder = new fabric.Rect({
             left: this.p.value - this.COMPOSITION_BORDER_SIZE,
             top: this.p.value - this.COMPOSITION_BORDER_SIZE,
@@ -1295,6 +1292,9 @@ class Editor {
             selectable: false,
             evented: false,
         });
+
+
+        console.log("compositionBorder", compositionBorder, this.COMPOSITION_BORDER_COLOR, this.COMPOSITION_BORDER_SIZE);
 
         compositionBorder.set("strokeWidth", this.COMPOSITION_BORDER_SIZE);
         compositionBorder.set("stroke", this.COMPOSITION_BORDER_COLOR);
