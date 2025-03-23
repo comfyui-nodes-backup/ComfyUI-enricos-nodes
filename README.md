@@ -22,6 +22,7 @@ With the Compositor Node you can:
 
 ## Changelog
 - head over to the [wiki](https://github.com/erosDiffusion/ComfyUI-enricos-nodes/wiki) tab for more workflows and information!
+- v **3.1.1** - 23.03.2025 fixed gui not showing up in comfy frontend higher Comfy 1.1.18+
 - v **3.1.0** - 20.09.2024
   - _new configuration feature_: **onConfigChange action toggle** when you change the configuration (or any of the attached nodes) you can now choose if:
     - you want to **stop** the flow to allow edits
