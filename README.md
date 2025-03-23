@@ -20,7 +20,7 @@ With the Compositor Node you can:
 - Precisely move selections with keyboard
 - Use the information about transforms in other nodes (like conditioning set area)
 
-$${\color{red}note: As of March 2025, the development of the extension is paused. I don't have much time to dedicate to it. code is open if you want to fork and make it better. $$
+$${\color{red}note: As of March 2025, the development of the extension is paused. I don't have much time to dedicate to it. code is open if you want to fork and make it better. }$$
 
 ## Changelog
 - head over to the [wiki](https://github.com/erosDiffusion/ComfyUI-enricos-nodes/wiki) tab for more workflows and information!
