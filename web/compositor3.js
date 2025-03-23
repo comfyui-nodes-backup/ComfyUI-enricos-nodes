@@ -1,7 +1,7 @@
 import {app} from "../../scripts/app.js";
 import {api} from "../../scripts/api.js";
+import { fabric } from "./fabric.js";
 
-import {fabric} from "./fabric.js";
 
 /** check if this is a Compositor3 node */
 function isCompositor3(node) {
@@ -409,8 +409,7 @@ app.registerExtension({
     async afterConfigureGraph(args) {
         // To do something when a workflow has loaded, use afterConfigureGraph, not setup
         // console.log("afterConfigureGraph", args);
-
-
+        
         // reset the config timestamp, to ensure re-triggering
         const configs = app.graph.findNodesByType("CompositorConfig3");
         configs.forEach((c) => {
@@ -418,16 +417,29 @@ app.registerExtension({
             initialized.value = Date.now();
         })
 
+        
+
         // enable nodes to talk to each other without running the frontend through a dedicated
         // broadcast channel
         //
         // setup broadcast channel, also needs to be done on node created or connection change...
         const nodes = app.graph.findNodesByType("Compositor3");
+        
         // probably too late here as it's already running in the back
         nodes.forEach((currentNode) => {
             const tools = currentNode.getInputNode(1);
-            //const tools = Editor.getToolWidget(this);
+
+            
+            
+            // Add this null check
+            if (!tools) {
+                console.log("No tools node connected to input 1 for Compositor3 node:", currentNode.id);
+                return; // Skip this node
+            }
+
             const CHANNELNAME = `Tools${tools.id}`;
+
+
             //console.log(CHANNELNAME)
             const channel = new BroadcastChannel(CHANNELNAME);
             channel.addEventListener("message", (e) => {
@@ -495,14 +507,26 @@ app.registerExtension({
         node.fabricDataWidget.value = JSON.stringify(firstRun);
 
         const containerDiv = Editor.createCompositorContainerDiv(node)
+        
+        const c = document.createElement("canvas");
+        c.id= "c_" + node.id;
+        containerDiv.appendChild(c);
+        
+        
+        
         node.editorWidget = node.addDOMWidget("test", "test", containerDiv, {
             //serialize: false,
             hideOnZoom: false,
         });
+        const fc = new fabric.Canvas(c);
+        
 
         /** initialize the compositor gui widget */
         const compositorInstance = new Editor(node, containerDiv);
-        compositorInstance.initFabric()
+        compositorInstance.initFabric(fc);
+
+
+       
 
         /**
          * grabUploadAndSetOutput callback can't be async so pass the widget in upload image
@@ -667,7 +691,7 @@ class Editor {
 
 
     static addCanvasBorderColorSetting() {
-        app.ui.settings.addSetting({
+        app.extensionManager.setting.set({
             id: "Compositor3.Canvas.BORDER_COLOR",
             name: "Border Color",
             tooltip: "give an hex code with alpha, e.g.: #00b300b0, it's the area controlled by 'padding' size outside the  output that will not be exported but used for manipulation",
@@ -680,7 +704,7 @@ class Editor {
     }
 
     static addCompositionBorderColorSetting() {
-        app.ui.settings.addSetting({
+        app.extensionManager.setting.set({
             id: "Compositor3.Composition.BORDER_COLOR",
             name: "Border Color (not rendered)",
             type: "text",
@@ -693,7 +717,7 @@ class Editor {
     }
 
     static addCompositionBorderSizeSetting() {
-        app.ui.settings.addSetting({
+        app.extensionManager.setting.set({
             id: "Compositor3.Composition.BORDER_SIZE",
             name: "Border Size",
             type: "slider",
@@ -712,7 +736,7 @@ class Editor {
     }
 
     static addCompositionBackgroundColorSetting() {
-        app.ui.settings.addSetting({
+        app.extensionManager.setting.set({
             id: "Compositor3.Composition.BACKGROUND_COLOR",
             name: "Background Color - Output",
             type: "text",
@@ -732,10 +756,10 @@ class Editor {
     }
 
     getCompositorSettings() {
-        this.CANVAS_BORDER_COLOR = app.ui.settings.getSettingValue("Compositor3.Canvas.BORDER_COLOR", "rgba(255,153,0,0.00)");
-        this.COMPOSITION_BORDER_COLOR = app.ui.settings.getSettingValue("Compositor3.Composition.BORDER_COLOR", "#00b300b0");
-        this.COMPOSITION_BORDER_SIZE = app.ui.settings.getSettingValue("Compositor3.Composition.BORDER_SIZE", 2);
-        this.COMPOSITION_BACKGROUND_COLOR = app.ui.settings.getSettingValue("Compositor3.Composition.BACKGROUND_COLOR", "rgba(0,0,0,0.2)");
+        this.CANVAS_BORDER_COLOR = app.extensionManager.setting.get("Compositor3.Canvas.BORDER_COLOR");
+        this.COMPOSITION_BORDER_COLOR = app.extensionManager.setting.get("Compositor3.Composition.BORDER_COLOR");
+        this.COMPOSITION_BORDER_SIZE = app.extensionManager.setting.get("Compositor3.Composition.BORDER_SIZE");
+        this.COMPOSITION_BACKGROUND_COLOR = app.extensionManager.setting.get("Compositor3.Composition.BACKGROUND_COLOR");
     }
 
     static getRandomCompositorUniqueId() {
@@ -746,15 +770,28 @@ class Editor {
 
     static createCompositorContainerDiv() {
         const container = document.createElement("div");
+        
         container.style.backgroundColor = "rgba(15,0,25,0.25)";
+        
         container.style.textAlign = "center";
+        
         return container;
     }
 
+    // static CreateIframe() {
+    //     const container = document.createElement("iframe");
+    //     container.style.backgroundColor = "rgba(15,0,25,0.25)";        
+    //     container.style.zIndex = 3000;
+    //     container.style.textAlign = "center";
+    //     container.src = "https://comfy.org/";
+    //     return container;
+    // }
+
     static createCanvasElement() {
         const canvas = document.createElement("canvas");
-
         canvas.id = Editor.getRandomCompositorUniqueId();
+        
+        
         return canvas;
     }
 
@@ -937,25 +974,21 @@ class Editor {
      * @return {fabric.Canvas}
      */
     static createFabricCanvas(id) {
-        const fcanvas = new fabric.Canvas(id, {
+        const canvasElement = document.getElementById(id);
+        
+        
+        const fcanvas = new fabric.Canvas(canvasElement, {
+        
             backgroundColor: 'transparent',
             selectionColor: 'transparent',
-            selectionLineWidth: 1,
-            // F-10 preserve object stacking
+            selectionLineWidth: 1,            
             preserveObjectStacking: true,
             altSelectionKey: "ctrlKey",
             altActionKey: "ctrlKey",
             centeredKey: "altKey",
-            // uniScaleTransform: false,
-            // selectable:true,
-            // evented:true,
-            // centeredRotation: true,
-            // centeredScaling: true,
-
-            // dangerous if you want to move stuff outside view that's transparent
-            // perPixelTargetFind: true,
+            
         });
-
+        
         return fcanvas;
     }
 
@@ -1277,7 +1310,7 @@ class Editor {
         return [cw + 21, ch + 91];
     }
 
-    initFabric() {
+    initFabric(c) {
 
 
         this.getCompositorSettings()
@@ -1285,36 +1318,50 @@ class Editor {
         // wannabe widgets
         this.w = {
             value: 512, callback: (value, graphCanvas, node) => {
-                //  console.log("w1 callback", value, graphCanvas, node)
+                
             }
         };
         this.h = {
             value: 512, callback: (value, graphCanvas, node) => {
-                //  console.log("h1 callback", value, graphCanvas, node)
+                
             }
         };
         this.p = {
             value: 100, callback: (value, graphCanvas, node) => {
-                //  console.log("p1 callback", value, graphCanvas, node)
+                
             }
         };
 
         this.containerDiv.width = this.w.value + 2 * this.p.value;
         this.containerDiv.height = this.h.value + 2 * this.p.value;
+
+        if(!c) {
         this.canvasEl = Editor.createCanvasElement();
+        
 
-
+   
         //this.canvasEl.id = 'test'; // ditor.getRandomCompositorUniqueId();
-        this.canvasEl.id = Editor.getRandomCompositorUniqueId();
+        // this.canvasEl.id = Editor.getRandomCompositorUniqueId();
+        
         this.containerDiv.appendChild(this.canvasEl);
-
+        
+        
 
         this.containerDiv.style.overflow = "hidden";
         this.canvasEl.width = this.w.value + 2 * this.p.value;
         this.canvasEl.height = this.h.value + 2 * this.p.value;
+        
 
-        this.fcanvas = Editor.createFabricCanvas(this.canvasEl.id);
-
+        this.fcanvas = Editor.createFabricCanvas(this.canvasEl);
+    }else{
+        this.containerDiv.style.overflow = "hidden";
+        this.fcanvas = c;
+        this.fcanvas.setWidth(this.w.value + 2 * this.p.value);
+        this.fcanvas.setHeight(this.h.value + 2 * this.p.value);
+        
+    }
+    
+        console.log("this.fcanvas",this.fcanvas);
 
         this.compositionArea = this.createCompositionArea();
         this.compositionBorder = this.createCompositionBorder();
