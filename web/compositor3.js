@@ -204,7 +204,7 @@ app.registerExtension({
             const images = [...e.names];
 
             const restore = Editor.deserializeStuff(node.fabricDataWidget.value);
-            const shouldRestore = true; // Editor.getConfigWidgetValue(node, 3);
+            const shouldRestore = restore ?? false; // Editor.getConfigWidgetValue(node, 3);
             const normalizeHeight = Editor.getConfigWidgetValue(node, 3);
             const onConfigChanged = Editor.getConfigWidgetValue(node, 4);
 
@@ -617,7 +617,15 @@ class Editor {
     }
 
     static deserializeStuff(value) {
-        return JSON.parse(value)
+        try {
+            return JSON.parse(value)
+            
+        
+        } catch (e) {
+            console.log("deserializeStuff", e, value);
+            return undefined;
+        }
+        
     }
 
     /**
@@ -970,18 +978,14 @@ class Editor {
      */
     static createFabricCanvas(id) {
         const canvasElement = document.getElementById(id);
-        
-        
-        const fcanvas = new fabric.Canvas(canvasElement, {
-        
+        const fcanvas = new fabric.Canvas(canvasElement, {        
             backgroundColor: 'transparent',
             selectionColor: 'transparent',
             selectionLineWidth: 1,            
             preserveObjectStacking: true,
             altSelectionKey: "ctrlKey",
             altActionKey: "ctrlKey",
-            centeredKey: "altKey",
-            
+            centeredKey: "altKey",            
         });
         
         return fcanvas;
@@ -1123,6 +1127,7 @@ class Editor {
                 top: activeObject.top + direction[1] * STEP,
             });
             this.fcanvas.renderAll();
+            instance.fcanvas.bringToFront(instance.compositionBorder);
             // console.log("selected objects are moved");
         }
     }
@@ -1202,6 +1207,8 @@ class Editor {
             // mark as needing upload so when we mouse out we doit then reset
             // mouse out is flimsy, sometimes it's not triggering
             compositorInstance.needsUpload = true;
+            compositorInstance.fcanvas.bringToFront(compositorInstance.compositionBorder);
+            compositorInstance.renderAll();
         });
 
         this.fcanvas.on('mouse:wheel', function (opt) {
