@@ -24,7 +24,7 @@ $${\color{red}note}$$: As of March 2025, the development of the extension is pau
 
 ## Changelog
 - head over to the [wiki](https://github.com/erosDiffusion/ComfyUI-enricos-nodes/wiki) tab for more workflows and information!
-- v **3.1.3** - fix regression due to comfy change, not sure what else is brooken but ... reinstance the node. might be that reloading a flow does not preserve anymore the configurations
+- v **3.1.3 & 3.1.4** - fix regression due to comfy change, not sure what else is brooken but ... reinstance the node. might be that reloading a flow does not preserve anymore the configurations
 - v **3.1.2** - merge pr for comfyui official registry
 - v **3.1.1** - 23.03.2025 fixed gui not showing up in comfy frontend higher Comfy 1.1.18+
 - v **3.1.0** - 20.09.2024
