@@ -1208,7 +1208,7 @@ class Editor {
             // mouse out is flimsy, sometimes it's not triggering
             compositorInstance.needsUpload = true;
             compositorInstance.fcanvas.bringToFront(compositorInstance.compositionBorder);
-            compositorInstance.renderAll();
+            compositorInstance.fcanvas.renderAll();
         });
 
         this.fcanvas.on('mouse:wheel', function (opt) {
