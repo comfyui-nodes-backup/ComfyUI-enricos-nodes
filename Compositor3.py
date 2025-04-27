@@ -20,6 +20,53 @@ def tensor2pil(image: torch.Tensor) -> Image.Image:
 def pil2tensor(image: Image.Image) -> torch.Tensor:
     return torch.from_numpy(np.array(image).astype(np.float32) / 255.0).unsqueeze(0)
 
+# Add a new helper function for placing images on a canvas with proper positioning
+def place_on_canvas(image_tensor, canvas_width, canvas_height, left, top, scale_x=1.0, scale_y=1.0):
+    """
+    Place an image tensor on a canvas of specified dimensions at the given position.
+    Images exceeding canvas boundaries will be truncated.
+    
+    Parameters:
+    - image_tensor: Torch tensor image to place
+    - canvas_width, canvas_height: Dimensions of the target canvas
+    - left, top: Position to place the image (top-left corner)
+    - scale_x, scale_y: Optional scaling factors
+    
+    Returns:
+    - Tensor image positioned on canvas
+    """
+    if image_tensor is None:
+        return None
+        
+    try:
+        # Convert tensor to PIL for manipulation
+        pil_image = tensor2pil(image_tensor)
+        
+        # Apply scaling if needed (different from 1.0)
+        original_width, original_height = pil_image.size
+        if scale_x != 1.0 or scale_y != 1.0:
+            new_width = int(original_width * scale_x)
+            new_height = int(original_height * scale_y)
+            if new_width > 0 and new_height > 0:  # Ensure dimensions are valid
+                pil_image = pil_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        
+        # Create a blank canvas
+        canvas = Image.new('RGB', (canvas_width, canvas_height), (0, 0, 0))
+        
+        # Calculate position with integer precision
+        pos_left = int(left)
+        pos_top = int(top)
+        
+        # Paste the image onto the canvas - PIL will handle truncation automatically
+        # when the image extends beyond canvas boundaries
+        canvas.paste(pil_image, (pos_left, pos_top))
+        
+        # Convert back to tensor
+        return pil2tensor(canvas)
+    except Exception as e:
+        print(f"Error placing image on canvas: {e}")
+        return image_tensor  # Return original image on error
+
 
 routes = PromptServer.instance.routes
 @routes.post('/compositor/done')
@@ -125,50 +172,98 @@ class Compositor3:
 
             # --- Image Rotation Logic ---
             rotated_images = [None] * 8
+            canvas_width = 512  # Default canvas width
+            canvas_height = 512  # Default canvas height
+            
             try:
                 fabric_data_parsed = json.loads(fabricData)
-                print(f"fabric data {fabricData}") # Print the angle
-                # Use the 'transforms' list instead of 'objects'
+                # Get canvas dimensions from fabric data if available
+                canvas_width = int(fabric_data_parsed.get("width", 512))
+                canvas_height = int(fabric_data_parsed.get("height", 512))
+                print(f"Canvas dimensions: {canvas_width}x{canvas_height}")
+                
+                # Get both transforms and bboxes arrays
                 fabric_transforms = fabric_data_parsed.get('transforms', [])
+                fabric_bboxes = fabric_data_parsed.get('bboxes', [])
+                
+                # Make sure we have valid arrays
+                if not fabric_transforms:
+                    fabric_transforms = [{} for _ in range(8)]
+                if not fabric_bboxes:
+                    fabric_bboxes = [{} for _ in range(8)]
 
                 for idx in range(8):
                     image_key = f"image{idx + 1}"
                     original_image_tensor = extendedConfig.get(image_key)
 
-                    # Check if index is within bounds of fabric_transforms
                     if original_image_tensor is not None and idx < len(fabric_transforms):
-                        fabric_transform = fabric_transforms[idx]
-                        angle = fabric_transform.get('angle', 0)
-                        print(f"Rotating image {idx+1} by angle: {angle}") # Print the angle
+                        # Get transformation data for rotation and scaling
+                        transform = fabric_transforms[idx]
+                        angle = transform.get('angle', 0)
+                        scale_x = transform.get('scaleX', 1.0)
+                        scale_y = transform.get('scaleY', 1.0)
+                        
+                        # Get positioning data from bboxes (these are the actual coordinates to use)
+                        bbox = fabric_bboxes[idx] if idx < len(fabric_bboxes) else {'left': 0, 'top': 0}
+                        left = bbox.get('left', 0)
+                        top = bbox.get('top', 0)
+                        
+                        print(f"Processing image {idx+1}: angle={angle}, position=({left},{top}), scale=({scale_x},{scale_y})")
 
-                        if angle != 0: # Only rotate if angle is not 0
+                        # First rotate if needed
+                        if angle != 0:
                             try:
-                                # Convert tensor to PIL
                                 pil_image = tensor2pil(original_image_tensor)
-                                # Rotate PIL image (negative angle for consistency with Fabric.js?)
-                                # Use BILINEAR resampling for better quality
                                 rotated_pil = pil_image.rotate(-angle, expand=True, resample=Image.Resampling.BILINEAR)
-                                # Convert back to tensor
                                 rotated_tensor = pil2tensor(rotated_pil)
-                                rotated_images[idx] = rotated_tensor
+                                # Place the rotated image on canvas using bbox position
+                                positioned_tensor = place_on_canvas(
+                                    rotated_tensor, 
+                                    canvas_width, 
+                                    canvas_height,
+                                    left, 
+                                    top,
+                                    scale_x,
+                                    scale_y
+                                )
+                                rotated_images[idx] = positioned_tensor
                             except Exception as e:
-                                print(f"Error rotating image {idx+1}: {e}")
-                                rotated_images[idx] = original_image_tensor # Fallback to original on error
+                                print(f"Error processing image {idx+1}: {e}")
+                                # Fallback - place the original image using bbox position
+                                rotated_images[idx] = place_on_canvas(
+                                    original_image_tensor,
+                                    canvas_width,
+                                    canvas_height,
+                                    left,
+                                    top,
+                                    scale_x,
+                                    scale_y
+                                )
                         else:
-                             rotated_images[idx] = original_image_tensor # Keep original if no rotation
+                            # No rotation needed, just position and scale using bbox position
+                            rotated_images[idx] = place_on_canvas(
+                                original_image_tensor,
+                                canvas_width,
+                                canvas_height,
+                                left,
+                                top,
+                                scale_x,
+                                scale_y
+                            )
                     elif original_image_tensor is not None:
-                         rotated_images[idx] = original_image_tensor # Keep original if no fabric data for it
+                        # No transform data, just use the original
+                        rotated_images[idx] = original_image_tensor
 
             except json.JSONDecodeError:
-                print("Error parsing fabricData JSON. Skipping rotation.")
+                print("Error parsing fabricData JSON. Skipping image positioning.")
                 # If JSON fails, just pass original images if they exist
                 for idx in range(8):
                     image_key = f"image{idx + 1}"
                     rotated_images[idx] = extendedConfig.get(image_key)
             except Exception as e:
-                 print(f"An unexpected error occurred during rotation processing: {e}")
-                 # Fallback in case of other errors
-                 for idx in range(8):
+                print(f"An unexpected error occurred during image processing: {e}")
+                # Fallback in case of other errors
+                for idx in range(8):
                     image_key = f"image{idx + 1}"
                     rotated_images[idx] = extendedConfig.get(image_key)
 
