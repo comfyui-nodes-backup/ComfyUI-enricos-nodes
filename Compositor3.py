@@ -21,31 +21,33 @@ def pil2tensor(image: Image.Image) -> torch.Tensor:
     return torch.from_numpy(np.array(image).astype(np.float32) / 255.0).unsqueeze(0)
 
 # Function to create an empty mask tensor of specified dimensions
-def create_empty_mask(width, height):
+def create_empty_mask(width, height, inverted=False):
     """
-    Create an empty (all black/transparent) mask tensor with specified dimensions.
-    This ensures we always have a valid mask output even when no mask is available.
+    Create an empty mask tensor with specified dimensions.
     
     Parameters:
     - width: Width of the mask
     - height: Height of the mask
+    - inverted: If True, creates a white mask (all 255), otherwise black mask (all 0)
     
     Returns:
     - Tensor representing an empty mask
     """
     try:
-        # Create a black image (all zeros) of the specified dimensions
-        empty_mask = Image.new('L', (width, height), 0)  # 'L' mode with all values set to 0 (black)
+        # Create a black image (all zeros) or white image (all 255) of the specified dimensions
+        value = 255 if inverted else 0
+        empty_mask = Image.new('L', (width, height), value)
         # Convert to tensor
         return pil2tensor(empty_mask)
     except Exception as e:
         print(f"Error creating empty mask: {e}")
         # As a fallback, create a 1x1 pixel mask
-        fallback_mask = Image.new('L', (1, 1), 0)
+        value = 255 if inverted else 0
+        fallback_mask = Image.new('L', (1, 1), value)
         return pil2tensor(fallback_mask)
 
 # Add a new helper function for placing images on a canvas with proper positioning
-def place_on_canvas(image_tensor, canvas_width, canvas_height, left, top, scale_x=1.0, scale_y=1.0, mask_tensor=None):
+def place_on_canvas(image_tensor, canvas_width, canvas_height, left, top, scale_x=1.0, scale_y=1.0, mask_tensor=None, invert_mask=True):
     """
     Place an image tensor on a canvas of specified dimensions at the given position.
     Images exceeding canvas boundaries will be truncated.
@@ -57,6 +59,7 @@ def place_on_canvas(image_tensor, canvas_width, canvas_height, left, top, scale_
     - left, top: Position to place the image (top-left corner)
     - scale_x, scale_y: Optional scaling factors
     - mask_tensor: Optional mask tensor to apply to the image
+    - invert_mask: Whether to invert the final mask (True means white=masked, black=unmasked)
     
     Returns:
     - Tuple of (positioned image tensor, positioned mask tensor)
@@ -99,10 +102,9 @@ def place_on_canvas(image_tensor, canvas_width, canvas_height, left, top, scale_
         # Create a transparent canvas for the image (RGBA with alpha=0)
         canvas = Image.new('RGBA', (canvas_width, canvas_height), (0, 0, 0, 0))
         
-        # Create a blank canvas for the mask (if present)
-        mask_canvas = None
-        if pil_mask is not None:
-            mask_canvas = Image.new('L', (canvas_width, canvas_height), 0)
+        # Create a mask canvas - start with fully masked (255 for inverted masks)
+        # This ensures anything outside the bounding box is considered masked
+        mask_canvas = Image.new('L', (canvas_width, canvas_height), 255 if invert_mask else 0)
         
         # Calculate position with integer precision
         pos_left = int(left)
@@ -112,42 +114,65 @@ def place_on_canvas(image_tensor, canvas_width, canvas_height, left, top, scale_
         # PIL will handle truncation automatically when the image extends beyond canvas boundaries
         canvas.paste(pil_image, (pos_left, pos_top), pil_image.split()[3])  # Use alpha channel as mask
         
-        # Process mask if present
-        positioned_mask_tensor = None
-        if pil_mask is not None and mask_canvas is not None:
-            mask_canvas.paste(pil_mask, (pos_left, pos_top))
-            positioned_mask_tensor = pil2tensor(mask_canvas)
+        # Get the dimensions of the placed image
+        placed_width = min(pil_image.width, canvas_width - pos_left) if pos_left < canvas_width else 0
+        placed_height = min(pil_image.height, canvas_height - pos_top) if pos_top < canvas_height else 0
+        
+        # Create a bounding box mask (black inside bounding box, white outside)
+        if placed_width > 0 and placed_height > 0:
+            # For the area where the image is placed, we need to:
+            # - If invert_mask=False: Set to 0 (unmasked) where image exists
+            # - If invert_mask=True: Set to 0 (masked) where image exists
+            bbox_value = 0
+            
+            # Create a temporary mask for the bounding box area
+            bbox_rect = Image.new('L', (placed_width, placed_height), bbox_value)
+            
+            # Paste this rectangle onto our mask canvas at the image position
+            # For inverted masks, this means the area where the image will be placed starts as unmasked (0)
+            # and the rest of the canvas is masked (255)
+            mask_canvas.paste(bbox_rect, (pos_left, pos_top))
+        
+        # Process the input mask if provided
+        if pil_mask is not None:
+            # Create a temporary transparent canvas for the input mask
+            input_mask_canvas = Image.new('L', (canvas_width, canvas_height), 0)
+            
+            # Paste the input mask at the correct position
+            input_mask_canvas.paste(pil_mask, (pos_left, pos_top))
+            
+            # If we're using inverted masks, we need to invert the input mask before combining
+            if invert_mask:
+                input_mask_canvas = ImageOps.invert(input_mask_canvas)
+            
+            # Now combine with our bounding box mask
+            # For inverted masks, we use the minimum value (logical AND) 
+            # This ensures that:
+            # - Areas outside bbox are always masked (255 for inverted)
+            # - Areas inside bbox are masked according to input mask
+            mask_array = np.array(mask_canvas)
+            input_mask_array = np.array(input_mask_canvas)
+            
+            if invert_mask:
+                # For inverted masks: black=unmasked (0), white=masked (255)
+                # Take the maximum value at each point (logical OR)
+                combined_array = np.maximum(mask_array, input_mask_array)
+            else:
+                # For normal masks: white=unmasked (255), black=masked (0)
+                # Take the minimum value at each point (logical AND)
+                combined_array = np.minimum(mask_array, input_mask_array)
+            
+            # Convert back to PIL
+            mask_canvas = Image.fromarray(combined_array.astype(np.uint8))
         
         # Convert back to tensor - need to handle RGBA to RGB conversion for ComfyUI compatibility
         # First extract RGB channels and create an RGB image
         r, g, b, a = canvas.split()
         rgb_image = Image.merge('RGB', (r, g, b))
         
-        # Create a mask from the alpha channel - this will be our output mask regardless of input mask
-        alpha_mask = a
-        
         # Convert back to tensors
         positioned_image_tensor = pil2tensor(rgb_image)
-        alpha_mask_tensor = pil2tensor(alpha_mask)
-        
-        # If an input mask was provided, combine it with alpha mask
-        if positioned_mask_tensor is not None:
-            # Combine masks by multiplying them
-            # Convert tensors to PIL for easy manipulation
-            alpha_pil = tensor2pil(alpha_mask_tensor)
-            input_mask_pil = tensor2pil(positioned_mask_tensor)
-            
-            # Normalize and multiply masks
-            alpha_array = np.array(alpha_pil).astype(np.float32) / 255.0
-            input_mask_array = np.array(input_mask_pil).astype(np.float32) / 255.0
-            combined_array = alpha_array * input_mask_array
-            
-            # Convert back to PIL and then tensor
-            combined_mask = Image.fromarray(np.clip(combined_array * 255.0, 0, 255).astype(np.uint8))
-            positioned_mask_tensor = pil2tensor(combined_mask)
-        else:
-            # Use alpha channel as mask if no input mask provided
-            positioned_mask_tensor = alpha_mask_tensor
+        positioned_mask_tensor = pil2tensor(mask_canvas)
         
         return positioned_image_tensor, positioned_mask_tensor
     except Exception as e:
