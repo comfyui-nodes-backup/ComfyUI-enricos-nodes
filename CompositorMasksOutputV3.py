@@ -14,6 +14,9 @@ class CompositorMasksOutputV3:
             "required": {
                 "layer_outputs": ("COMPOSITOR_OUTPUT_MASKS",),
             },
+            "optional": {
+                "subtract_masks": ("BOOLEAN", {"default": False}),
+            }
         }
 
     RETURN_TYPES = ("IMAGE", "IMAGE", "IMAGE", "IMAGE", "IMAGE", "IMAGE", "IMAGE", "IMAGE",
@@ -25,12 +28,14 @@ class CompositorMasksOutputV3:
     FUNCTION = "unpack_outputs"
     CATEGORY = "image"
 
-    def unpack_outputs(self, layer_outputs):
+    def unpack_outputs(self, layer_outputs, subtract_masks=False):
         """
         Unpacks the layer_outputs dictionary into individual image and mask outputs.
         
         Args:
             layer_outputs: Dictionary containing 'images', 'masks', 'canvas_width', and 'canvas_height'
+            subtract_masks: When True, each mask will have higher-numbered masks subtracted from it
+                           (e.g., mask 6 = mask 6 - mask 7, mask 5 = mask 5 - mask 6, etc.)
             
         Returns:
             Tuple of 16 tensors: 8 images and 8 masks in order
@@ -48,9 +53,9 @@ class CompositorMasksOutputV3:
             img_np = np.array(empty_img).astype(np.float32) / 255.0
             return torch.from_numpy(img_np)[None, ]
         
-        # Create a standard empty mask (black) for missing values
+        # Create a standard empty mask (white) for missing values
         def create_empty_mask(width, height):
-            empty_mask = Image.new('L', (width, height), 0)  # Black mask (completely masked)
+            empty_mask = Image.new('L', (width, height), 255)  # White mask (completely transparent)
             mask_np = np.array(empty_mask).astype(np.float32) / 255.0
             return torch.from_numpy(mask_np)[None, ]
         
@@ -70,6 +75,25 @@ class CompositorMasksOutputV3:
                 result_masks.append(masks[i])
             else:
                 result_masks.append(create_empty_mask(canvas_width, canvas_height))
+        
+        # Apply mask subtraction if enabled
+        if subtract_masks:
+            processed_masks = result_masks.copy()
+            
+            # We start from the second-highest mask (index 6, mask 7) and work down
+            # mask 8 (index 7) remains unchanged
+            for i in range(6, -1, -1):
+                current_mask = processed_masks[i]
+                higher_mask = processed_masks[i+1]
+                
+                # Where higher mask has black pixels (visible content), make current mask white (transparent)
+                # In mask convention: black (0) = visible, white (1) = transparent
+                black_pixels_in_higher = higher_mask < 0.5
+                
+                # Apply the subtraction - where higher mask has black pixels, make current mask white
+                processed_masks[i] = torch.where(black_pixels_in_higher, torch.ones_like(current_mask), current_mask)
+            
+            result_masks = processed_masks
         
         # Return all images and masks as a flat tuple
         return (*result_images, *result_masks)
