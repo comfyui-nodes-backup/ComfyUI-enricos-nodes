@@ -214,15 +214,9 @@ class Compositor3:
             },
         }
 
-    # Updated RETURN_TYPES with proper MASK type for mask outputs
-    RETURN_TYPES = ("STRING", "IMAGE", 
-                    "IMAGE", "IMAGE", "IMAGE", "IMAGE", "IMAGE", "IMAGE", "IMAGE", "IMAGE",
-                    "MASK", "MASK", "MASK", "MASK", "MASK", "MASK", "MASK", "MASK")
-    RETURN_NAMES = ("transforms", "image", 
-                   "image_out_1", "image_out_2", "image_out_3", "image_out_4", 
-                   "image_out_5", "image_out_6", "image_out_7", "image_out_8",
-                   "mask_out_1", "mask_out_2", "mask_out_3", "mask_out_4", 
-                   "mask_out_5", "mask_out_6", "mask_out_7", "mask_out_8")
+    # Updated RETURN_TYPES to use new COMPOSITOR_OUTPUT_MASKS type
+    RETURN_TYPES = ("STRING", "IMAGE", "COMPOSITOR_OUTPUT_MASKS")
+    RETURN_NAMES = ("transforms", "image", "layer_outputs")
     FUNCTION = "composite"
     CATEGORY = "image"
 
@@ -399,33 +393,48 @@ class Compositor3:
                         rotated_images[idx] = original_image_tensor
                         rotated_masks[idx] = original_mask_tensor  # Use original mask if available
 
+                # Before returning results, replace any None mask values with empty masks
+                # to ensure the workflow doesn't break when connecting to mask inputs
+                for idx in range(8):
+                    if rotated_masks[idx] is None:
+                        # Create empty mask with the same dimensions as canvas
+                        rotated_masks[idx] = create_empty_mask(canvas_width, canvas_height)
+                
+                # Create a dictionary to hold all images and masks
+                compositor_output_masks = {
+                    "images": rotated_images,
+                    "masks": rotated_masks,
+                    "canvas_width": canvas_width,
+                    "canvas_height": canvas_height
+                }
+                
+                return {
+                    "ui": ui,
+                    "result": (fabricData, image, compositor_output_masks)
+                }
             except json.JSONDecodeError:
                 print("Error parsing fabricData JSON. Skipping image positioning.")
-                # If JSON fails, just pass original images if they exist (handle None extendedConfig)
-                if extendedConfig is not None:
-                    for idx in range(8):
-                        image_key = f"image{idx + 1}"
-                        mask_key = f"mask{idx + 1}"
-                        rotated_images[idx] = extendedConfig.get(image_key)
-                        rotated_masks[idx] = extendedConfig.get(mask_key)
+                # Fallback in case of JSON parsing error
+                empty_output = {
+                    "images": [None] * 8,
+                    "masks": [None] * 8,
+                    "canvas_width": 512,
+                    "canvas_height": 512
+                }
+                return {
+                    "ui": ui,
+                    "result": (fabricData, image, empty_output)
+                }
             except Exception as e:
                 print(f"An unexpected error occurred during image processing: {e}")
-                # Fallback in case of other errors (handle None extendedConfig)
-                if extendedConfig is not None:
-                    for idx in range(8):
-                        image_key = f"image{idx + 1}"
-                        mask_key = f"mask{idx + 1}"
-                        rotated_images[idx] = extendedConfig.get(image_key)
-                        rotated_masks[idx] = extendedConfig.get(mask_key)
-
-            # Before returning results, replace any None mask values with empty masks
-            # to ensure the workflow doesn't break when connecting to mask inputs
-            for idx in range(8):
-                if rotated_masks[idx] is None:
-                    # Create empty mask with the same dimensions as canvas
-                    rotated_masks[idx] = create_empty_mask(canvas_width, canvas_height)
-                    
-            return {
-                "ui": ui,
-                "result": (fabricData, image, *rotated_images, *rotated_masks) # Return transforms, composite image, 8 rotated images, and 8 masks
-            }
+                # Fallback in case of other errors
+                empty_output = {
+                    "images": [None] * 8,
+                    "masks": [None] * 8,
+                    "canvas_width": 512,
+                    "canvas_height": 512
+                }
+                return {
+                    "ui": ui,
+                    "result": (fabricData, image, empty_output)
+                }
