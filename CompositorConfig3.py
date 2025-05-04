@@ -66,8 +66,8 @@ class CompositorConfig3:
             },
         }
 
-    RETURN_TYPES = ("COMPOSITOR_CONFIG",)
-    RETURN_NAMES = ("config",)
+    RETURN_TYPES = ("COMPOSITOR_CONFIG", "COMPOSITOR_CONFIG")
+    RETURN_NAMES = ("config", "extendedConfig")
 
     FUNCTION = "configure"
 
@@ -82,6 +82,8 @@ The compositor node
 """
 
     def configure(self, **kwargs):
+        # capture all inputs for extendedConfig
+        all_inputs = kwargs.copy()
         # extract the images
         # convert them from tensor to pil and then to base 64
         # send as custom to be able to be used by ui
@@ -166,10 +168,8 @@ The compositor node
             "onConfigChanged": onConfigChanged,
             "normalizeHeight": normalizeHeight,
             "invertMask": invertMask,
-        }
-        # print(f"compositor config {node_id} executed")
-        # return (res, self.masked, )
-        return (res,)
+        }        
+        return (res, all_inputs)
 
     def apply_mask(self, image: torch.Tensor, alpha: torch.Tensor, invertMask=False):
         batch_size = min(len(image), len(alpha))
