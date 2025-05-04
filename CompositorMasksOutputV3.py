@@ -14,7 +14,7 @@ class CompositorMasksOutputV3:
             "required": {
                 "layer_outputs": ("COMPOSITOR_OUTPUT_MASKS",),
             },
-            "optional": {
+            "hidden": {
                 "subtract_masks": ("BOOLEAN", {"default": False}),
             }
         }
