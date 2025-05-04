@@ -351,8 +351,8 @@ class Compositor3:
                                     rotated_tensor, 
                                     canvas_width, 
                                     canvas_height,
-                                    left, 
-                                    top,
+                                    left - padding,  # Subtract padding from left position
+                                    top - padding,   # Subtract padding from top position
                                     scale_x,
                                     scale_y,
                                     rotated_mask_tensor
@@ -376,12 +376,13 @@ class Compositor3:
                                 rotated_masks[idx] = positioned_mask
                         else:
                             # No rotation needed, just position and scale using bbox position
+                            # Subtract padding from left and top coordinates to correctly position in output
                             positioned_tensor, positioned_mask = place_on_canvas(
                                 original_image_tensor,
                                 canvas_width,
                                 canvas_height,
-                                left,
-                                top,
+                                left - padding,  # Subtract padding from left position
+                                top - padding,   # Subtract padding from top position
                                 scale_x,
                                 scale_y,
                                 original_mask_tensor

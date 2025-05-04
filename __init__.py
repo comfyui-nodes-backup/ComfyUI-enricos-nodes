@@ -4,7 +4,7 @@ from .CompositorConfig3 import CompositorConfig3
 from .CompositorTools3 import CompositorTools3
 from .CompositorTransformsOut3 import CompositorTransformsOutV3
 from .CompositorMasksOutputV3 import CompositorMasksOutputV3
-you from .CompositorColorPicker import CompositorColorPicker
+from .CompositorColorPicker import CompositorColorPicker
 
 NODE_CLASS_MAPPINGS = {
     "Compositor3": Compositor3,
