@@ -30,7 +30,7 @@ With the Compositor Node you can:
   - _new feature_: **Mask outputs!**  you asked for it so there you go: A new node that outputs the layers and their masks! search for the compositor masks output node and connect it to the new layer_outputs output socket. note: mask stacking (subtract top masks from the bekow ones will come later)
   - _new node_ :a new **color picker node** (specify rgb coordinates or use the eyedropper and connect the 24 bit output to connect to color inputs). 
   - _bugfix_: fixed a regression for which the composition overlay was not being superimposed the composition while moving objects and z-stacking not being preserved until save
-  - _sample workflow_: ![a sample workflow with assets can be found in the /assets/workflows folder](/assets/workflows/compositorMasksV3_sample.json)
+  - _sample workflow_: [a sample workflow with assets can be found in the /assets/workflows folder](/assets/workflows/compositorMasksV3_sample.json)
 - v **3.1.3 & 3.1.4** - fix regression due to comfy change, not sure what else is brooken but ... reinstance the node. might be that reloading a flow does not preserve anymore the configurations
 - v **3.1.2** - merge pr for comfyui official registry
 - v **3.1.1** - 23.03.2025 fixed gui not showing up in comfy frontend higher Comfy 1.1.18+
