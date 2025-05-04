@@ -17,17 +17,20 @@ With the Compositor Node you can:
 - Easily re-frame your shot via multiple selection scaling, resizing and re-positioning
 - Flip an image via negative scaling (drag a corner towards and past the inside of the image)
 - Mask your images quickly
+- Output masks for each layer.
 - Precisely move selections with keyboard
 - Use the information about transforms in other nodes (like conditioning set area)
+- Use the color picker supporting node to select colors form any part of the browser.
 
-$${\color{red}note}$$: As of March 2025, the development of the extension is paused. I don't have much time to dedicate to it. code is open if you want to fork and make it better. 
+
 
 ## Changelog
 - head over to the [wiki](https://github.com/erosDiffusion/ComfyUI-enricos-nodes/wiki) tab for more workflows and information!
 - v **3.1.5** - 04.05.2025
-  - _new feature_: **Mask outputs!**  A new node output to spit masks now you have layer masks as outputs as well as single placed image outputs via new layer_outputs
-  - _new node_ :a new **color picker node** (specify rgb coordinates or use the eyedropper and connect the 24 bit output to connect to color inputs). note: mask stacking (subtract top masks from the bekow ones will come later)
+  - _new feature_: **Mask outputs!**  you asked for it so there you go: A new node that outputs the layers and their masks! search for the compositor masks output node and connect it to the new layer_outputs output socket. note: mask stacking (subtract top masks from the bekow ones will come later)
+  - _new node_ :a new **color picker node** (specify rgb coordinates or use the eyedropper and connect the 24 bit output to connect to color inputs). 
   - _bugfix_: fixed a regression for which the composition overlay was not being superimposed the composition while moving objects and z-stacking not being preserved until save
+  - _sample workflow_: ![a sample workflow with assets can be found in the /assets/workflows folder](/assets/workflows/compositorMasksV3_sample.json)
 - v **3.1.3 & 3.1.4** - fix regression due to comfy change, not sure what else is brooken but ... reinstance the node. might be that reloading a flow does not preserve anymore the configurations
 - v **3.1.2** - merge pr for comfyui official registry
 - v **3.1.1** - 23.03.2025 fixed gui not showing up in comfy frontend higher Comfy 1.1.18+
