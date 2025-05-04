@@ -518,7 +518,15 @@ app.registerExtension({
             //serialize: false,
             hideOnZoom: false,
         });
-        const fc = new fabric.Canvas(c);
+        const fc = new fabric.Canvas(c,{        
+            backgroundColor: 'transparent',
+            selectionColor: 'transparent',
+            selectionLineWidth: 1,            
+            preserveObjectStacking: true,
+            altSelectionKey: "ctrlKey",
+            altActionKey: "ctrlKey",
+            centeredKey: "altKey",            
+        });
         
 
         /** initialize the compositor gui widget */
