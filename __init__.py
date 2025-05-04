@@ -27,3 +27,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 EXTENSION_NAME = "Enrico"
 
 WEB_DIRECTORY = "./web"
+
+# Additional web resources to ensure they're loaded
+__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
