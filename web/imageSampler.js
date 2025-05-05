@@ -375,23 +375,31 @@ app.registerExtension({
                         const pixelX = Math.max(0, Math.min(canvas.width - 1, Math.floor(x)));
                         const pixelY = Math.max(0, Math.min(canvas.height - 1, Math.floor(y)));
                         
-                        // First redraw just the image at the sampling location to get accurate color
-                        // Create a temporary 1x1 area to sample from the original image
+                        // Save context state
                         ctx.save();
-                        ctx.clearRect(pixelX, pixelY, 1, 1);
-                        ctx.drawImage(image, 
-                            pixelX, pixelY, 1, 1,
-                            pixelX, pixelY, 1, 1);
-                            
-                        // Get the pixel data at the exact point
+                        
+                        // Clear the canvas and draw just the image without any overlays
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+                        
+                        // Get the exact pixel data - no averaging or interpolation
                         const pixelData = ctx.getImageData(pixelX, pixelY, 1, 1).data;
+                        
+                        // Restore context to previous state
                         ctx.restore();
                         
-                        // Convert to hex color with proper padding
-                        const r = pixelData[0].toString(16).padStart(2, '0');
-                        const g = pixelData[1].toString(16).padStart(2, '0');
-                        const b = pixelData[2].toString(16).padStart(2, '0');
-                        return `#${r}${g}${b}`;
+                        // Get exact RGB values (as integers)
+                        const r = pixelData[0];
+                        const g = pixelData[1];
+                        const b = pixelData[2];
+                        
+                        // Format for hex display
+                        const rHex = r.toString(16).padStart(2, '0');
+                        const gHex = g.toString(16).padStart(2, '0');
+                        const bHex = b.toString(16).padStart(2, '0');
+                        
+                        // Return the hex representation
+                        return `#${rHex}${gHex}${bHex}`;
                     } catch (e) {
                         console.error("Error getting pixel color:", e);
                         return "#FFFFFF";

@@ -72,6 +72,20 @@ class ImageColorSampler:
         b5 = int(b * 31 / 255)
         return (r5 << 11) | (g6 << 5) | b5
     
+    def rgb_to_24bit(self, r, g, b):
+        """
+        Convert RGB values (0-255) to 24-bit color value (0-16777215)
+        This is compatible with ComfyUI's emptyImage node.
+        
+        Args:
+            r, g, b: 8-bit color values (0-255)
+        
+        Returns:
+            24-bit color value
+        """
+        return (r << 16) | (g << 8) | b
+        
+    
     def create_palette(self, image, sample_points, palette_size=128, sample_size=5, wait_for_input=True, node_id=None):
         """
         Creates a color palette from the sampled points on the image.
@@ -148,19 +162,31 @@ class ImageColorSampler:
             x = int(point["x"] * width)
             y = int(point["y"] * height)
             
-            # Ensure coordinates are within bounds
-            x = max(sample_size, min(width - sample_size - 1, x))
-            y = max(sample_size, min(height - sample_size - 1, y))
+            # Use exact color from JavaScript when sample_size is 1, otherwise do averaging
+            if sample_size == 1 and "color" in point and isinstance(point["color"], str) and point["color"].startswith("#"):
+                # Use the hex color directly from JavaScript for exact values
+                hex_color = point["color"]
+                
+                # Parse hex color to RGB
+                r = int(hex_color[1:3], 16)
+                g = int(hex_color[3:5], 16)
+                b = int(hex_color[5:7], 16)
+            else:
+                # Use averaging for larger sample sizes or when color isn't specified
+                # Ensure coordinates are within bounds
+                x = max(sample_size, min(width - sample_size - 1, x))
+                y = max(sample_size, min(height - sample_size - 1, y))
+                
+                # Sample area - take average color in the sample radius
+                sample_area = img_np[y-sample_size:y+sample_size+1, x-sample_size:x+sample_size+1]
+                avg_color = np.mean(sample_area, axis=(0, 1))
+                
+                # Convert to 8-bit RGB
+                r, g, b = [int(c * 255) for c in avg_color]
+                
+                # Create hex code
+                hex_color = f"#{r:02X}{g:02X}{b:02X}"
             
-            # Sample area - take average color in the sample radius
-            sample_area = img_np[y-sample_size:y+sample_size+1, x-sample_size:x+sample_size+1]
-            avg_color = np.mean(sample_area, axis=(0, 1))
-            
-            # Convert to 8-bit RGB
-            r, g, b = [int(c * 255) for c in avg_color]
-            
-            # Create hex code
-            hex_color = f"#{r:02X}{g:02X}{b:02X}"
             hex_codes.append(hex_color)
             
             # Add to colors list with position info
@@ -178,8 +204,8 @@ class ImageColorSampler:
             swatch_tensor = torch.from_numpy(swatch_img)[None, ]
             swatches.append(swatch_tensor)
             
-            # Add 24-bit RGB value to list
-            rgb_24bit.append((r << 16) | (g << 8) | b)
+            # Add 24-bit RGB value to list using the dedicated method
+            rgb_24bit.append(self.rgb_to_24bit(r, g, b))
             
             # Add 16-bit RGB565 value to list
             rgb_565.append(self.rgb_to_16bit(r, g, b, 'RGB565'))
