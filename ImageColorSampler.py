@@ -29,13 +29,16 @@ class ImageColorSampler:
             },
         }
 
-    RETURN_TYPES = ("IMAGE", "STRING", "STRING")
-    RETURN_NAMES = ("palette", "sampled_colors", "hex_codes")
+    RETURN_TYPES = ("IMAGE", "STRING", "STRING", "IMAGE")
+    RETURN_NAMES = ("palette", "sampled_colors", "hex_codes", "swatches")
     FUNCTION = "create_palette"
     CATEGORY = "image/color"
     
     # Enable dynamic outputs for individual colors
     OUTPUT_NODE = True
+    
+    # Enable list output for swatches
+    OUTPUT_IS_LIST = [False, False, False, True]
     
     # Track which nodes are waiting for user input
     waiting_nodes = set()
@@ -67,7 +70,7 @@ class ImageColorSampler:
             node_id: Unique ID of this node instance
         
         Returns:
-            Tuple of (palette_image, sampled_colors_json, hex_codes_string)
+            Tuple of (palette_image, sampled_colors_json, hex_codes_string, swatches_list)
         """
         # Parse the sample points
         try:
@@ -98,7 +101,7 @@ class ImageColorSampler:
             self.waiting_nodes.add(node_id)
             
             # Return ExecutionBlocker for all outputs
-            return (ExecutionBlocker(None), ExecutionBlocker(None), ExecutionBlocker(None))
+            return (ExecutionBlocker(None), ExecutionBlocker(None), ExecutionBlocker(None), ExecutionBlocker(None))
         
         # Remove from waiting list if resuming
         if node_id in self.waiting_nodes:
@@ -115,11 +118,13 @@ class ImageColorSampler:
             # Create empty palette
             palette_img = np.zeros((palette_size, palette_size, 3), dtype=np.float32)
             palette_tensor = torch.from_numpy(palette_img)[None, ]
-            return (palette_tensor, "[]", "[]")
+            empty_swatch = torch.from_numpy(np.zeros((palette_size, palette_size, 3), dtype=np.float32))[None, ]
+            return (palette_tensor, "[]", "[]", [empty_swatch])
             
         # Calculate colors for each sample point
         sampled_colors = []
         hex_codes = []
+        swatches = []
         
         for point in points:
             x = int(point["x"] * width)
@@ -147,13 +152,22 @@ class ImageColorSampler:
                 "hex": hex_color
             })
             
+            # Create a swatch image for this color
+            swatch_img = np.zeros((palette_size, palette_size, 3), dtype=np.float32)
+            swatch_img[:, :, 0] = r / 255.0
+            swatch_img[:, :, 1] = g / 255.0
+            swatch_img[:, :, 2] = b / 255.0
+            swatch_tensor = torch.from_numpy(swatch_img)[None, ]
+            swatches.append(swatch_tensor)
+            
         # Create palette image
         num_colors = len(sampled_colors)
         if num_colors == 0:
             # Create empty palette
             palette_img = np.zeros((palette_size, palette_size, 3), dtype=np.float32)
             palette_tensor = torch.from_numpy(palette_img)[None, ]
-            return (palette_tensor, "[]", "[]")
+            empty_swatch = torch.from_numpy(np.zeros((palette_size, palette_size, 3), dtype=np.float32))[None, ]
+            return (palette_tensor, "[]", "[]", [empty_swatch])
             
         # Create palette image - a horizontal strip of colors
         stripe_height = palette_size
@@ -181,8 +195,8 @@ class ImageColorSampler:
         # Prepare dynamic outputs (individual hex codes)
         self.output_colors = hex_codes
         
-        # Return all outputs
-        return (palette_tensor, json_colors, hex_list)
+        # Return all outputs, including the swatches list
+        return (palette_tensor, json_colors, hex_list, swatches)
     
     # Method to provide dynamic outputs for individual colors
     def get_output_for_node_type(self, node):
