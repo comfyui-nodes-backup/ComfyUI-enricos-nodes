@@ -274,10 +274,8 @@ app.registerExtension({
                             ctx.stroke();
                         }
                         
-                        // Display hex code next to the point
+                        // Display color information next to the point with a fixed-size background
                         const hexColor = point.color || "#ffffff";
-                        ctx.font = "bold 12px Arial";
-                        ctx.textAlign = "center";
                         
                         // Parse hex to RGB values
                         const r = parseInt(hexColor.substring(1, 3), 16);
@@ -285,25 +283,70 @@ app.registerExtension({
                         const b = parseInt(hexColor.substring(5, 7), 16);
                         const rgbText = `(${r}, ${g}, ${b})`;
                         
-                        // Draw background for hex text
-                        const hexTextWidth = ctx.measureText(hexColor).width;
-                        ctx.fillStyle = "rgba(0,0,0,0.6)";
-                        ctx.fillRect(x - hexTextWidth/2 - 2, y + pointSize + 5, hexTextWidth + 4, 14);
+                        // Fixed position with consistent offset from the point
+                        const labelX = x;
+                        // Increase separation between point and label
+                        const labelY = y + pointSize + 25; 
+                        const padding = 8;
                         
-                        // Draw hex text
+                        // Use a more readable font family with fallbacks
+                        const fontFamily = "'Segoe UI', Roboto, 'Helvetica Neue', sans-serif";
+                        
+                        // Draw better looking label background with rounded corners
+                        const cornerRadius = 4;
+                        ctx.save(); // Save context state before modifications
+                        
+                        // Fixed width for the background based on max possible text size
+                        // "#FFFFFF" + "(255, 255, 255)" with proper padding
+                        const fixedLabelWidth = 100; // Fixed width that accommodates all possible values
+                        const fixedLabelHeight = 42; // Fixed height for consistent appearance
+                        
+                        // Create rounded rectangle background for color label
+                        ctx.fillStyle = "rgba(0,0,0,0.75)"; // Darker, more opaque background
+                        roundRect(
+                            ctx, 
+                            labelX - fixedLabelWidth/2, // Center the fixed-width box
+                            labelY - 15,
+                            fixedLabelWidth,
+                            fixedLabelHeight,
+                            cornerRadius
+                        );
+                        
+                        // Apply text rendering optimizations
+                        ctx.textBaseline = "middle";
+                        ctx.shadowColor = "rgba(0,0,0,0.5)";
+                        ctx.shadowBlur = 3;
+                        ctx.shadowOffsetX = 0;
+                        ctx.shadowOffsetY = 1;
+                        
+                        // Draw hex text with improved visibility
+                        ctx.font = `bold 13px ${fontFamily}`;
+                        ctx.textAlign = "center";
                         ctx.fillStyle = "#ffffff";
-                        ctx.fillText(hexColor, x, y + pointSize + 15);
+                        ctx.fillText(hexColor, labelX, labelY);
                         
-                        // Draw background for RGB text
-                        ctx.font = "10px Arial";
-                        const rgbTextWidth = ctx.measureText(rgbText).width;
-                        ctx.fillStyle = "rgba(0,0,0,0.6)";
-                        ctx.fillRect(x - rgbTextWidth/2 - 2, y + pointSize + 20, rgbTextWidth + 4, 14);
+                        // Draw RGB text below hex text
+                        ctx.font = `11px ${fontFamily}`;
+                        ctx.fillStyle = "#cccccc"; // Slightly dimmer for secondary info
+                        ctx.fillText(rgbText, labelX, labelY + 16);
                         
-                        // Draw RGB text
-                        ctx.fillStyle = "#ffffff";
-                        ctx.fillText(rgbText, x, y + pointSize + 30);
+                        ctx.restore(); // Restore context to previous state
                     });
+                };
+                
+                // Helper function to create rounded rectangle path
+                const roundRect = (context, x, y, width, height, radius) => {
+                    if (width < 2 * radius) radius = width / 2;
+                    if (height < 2 * radius) radius = height / 2;
+                    
+                    context.beginPath();
+                    context.moveTo(x + radius, y);
+                    context.arcTo(x + width, y, x + width, y + height, radius);
+                    context.arcTo(x + width, y + height, x, y + height, radius);
+                    context.arcTo(x, y + height, x, y, radius);
+                    context.arcTo(x, y, x + width, y, radius);
+                    context.closePath();
+                    context.fill();
                 };
                 
                 // Check if a point is under the cursor
