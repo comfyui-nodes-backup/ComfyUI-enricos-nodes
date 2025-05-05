@@ -21,8 +21,7 @@ class ImageColorSampler:
                 "sample_points": ("STRING", {"default": "[]", "multiline": True}),
                 "palette_size": ("INT", {"default": 128, "min": 32, "max": 512}),
                 "sample_size": ("INT", {"default": 1, "min": 1, "max": 30}),
-                "wait_for_input": ("BOOLEAN", {"default": True}),
-                "output_format": (["JSON", "Hex List", "Both"], {"default": "Both"})
+                "wait_for_input": ("BOOLEAN", {"default": True})
             },
             "hidden": {
                 "node_id": "UNIQUE_ID",
@@ -56,7 +55,7 @@ class ImageColorSampler:
         img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
         return f"data:image/png;base64,{img_str}"
     
-    def create_palette(self, image, sample_points, palette_size=128, sample_size=5, wait_for_input=True, output_format="Both", node_id=None):
+    def create_palette(self, image, sample_points, palette_size=128, sample_size=5, wait_for_input=True, node_id=None):
         """
         Creates a color palette from the sampled points on the image.
         
@@ -66,7 +65,6 @@ class ImageColorSampler:
             palette_size: Size of the palette image (height in pixels)
             sample_size: Size of sample area (radius) for color averaging
             wait_for_input: Whether to block execution waiting for user input
-            output_format: Format for color output (JSON, Hex List, or Both)
             node_id: Unique ID of this node instance
         
         Returns:
