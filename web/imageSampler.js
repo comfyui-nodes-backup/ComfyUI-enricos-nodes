@@ -59,48 +59,42 @@ app.registerExtension({
                 
                 // Create main container for our custom widget
                 const container = document.createElement("div");
-                container.style.width = "100%";
-                container.style.height = "100%";
+                container.style.width = "auto";
+                container.style.height = "auto";
                 container.style.display = "flex";
                 container.style.flexDirection = "column";
                 container.style.padding = "10px";
+                container.style.resize = "none";
+                container.style.overflow = "hidden";
                 
                 // Create image container
                 const imageContainer = document.createElement("div");
-                imageContainer.style.position = "relative";
-                imageContainer.style.width = "100%";
-                imageContainer.style.height = "300px";
                 imageContainer.style.backgroundColor = "#333";
-                imageContainer.style.overflow = "hidden";
-                imageContainer.style.display = "flex";
-                imageContainer.style.justifyContent = "center";
-                imageContainer.style.alignItems = "center";
                 imageContainer.style.border = "1px solid #666";
                 imageContainer.style.borderRadius = "4px";
                 imageContainer.style.cursor = "crosshair";
+                imageContainer.style.display = "block";
+                imageContainer.style.width = "auto";
+                imageContainer.style.margin = "0 auto";
+                imageContainer.style.resize = "none";
+                imageContainer.style.overflow = "hidden";
                 
                 // Create canvas for image display and interaction
                 const canvas = document.createElement("canvas");
-                canvas.style.maxWidth = "100%";
-                canvas.style.maxHeight = "100%";
-                canvas.style.objectFit = "contain";
-                canvas.style.position = "absolute";
-                canvas.width = 512;
+                canvas.width = 512;  // Initial size, will be updated when image loads
                 canvas.height = 512;
                 imageContainer.appendChild(canvas);
                 
-                // Create debug info element to show coordinates (can be hidden in production)
+                // Create debug info element to show coordinates
                 const debugInfo = document.createElement("div");
-                debugInfo.style.position = "absolute";
-                debugInfo.style.top = "10px";
-                debugInfo.style.left = "10px";
                 debugInfo.style.backgroundColor = "rgba(0,0,0,0.5)";
                 debugInfo.style.color = "#fff";
                 debugInfo.style.padding = "5px";
                 debugInfo.style.borderRadius = "3px";
                 debugInfo.style.fontSize = "12px";
-                debugInfo.style.display = "block"; // Set to "block" for debugging "none" to hide in production
-                imageContainer.appendChild(debugInfo);
+                debugInfo.style.margin = "5px";
+                debugInfo.style.display = "block"; // Set to "none" to hide in production
+                container.appendChild(debugInfo);
                 
                 // Create info panel
                 const infoPanel = document.createElement("div");
@@ -153,34 +147,9 @@ app.registerExtension({
                 buttonsContainer.appendChild(clearButton);
                 buttonsContainer.appendChild(continueButton);
                 
-                // Add checkbox for normalizing image dimensions
-                const normalizationControls = document.createElement("div");
-                normalizationControls.style.display = "flex";
-                normalizationControls.style.alignItems = "center";
-                normalizationControls.style.marginTop = "10px";
-                normalizationControls.style.gap = "10px";
-                
-                const normalizeCheckbox = document.createElement("input");
-                normalizeCheckbox.type = "checkbox";
-                normalizeCheckbox.id = "normalize-size-" + this.id;
-                normalizeCheckbox.style.cursor = "pointer";
-                
-                const normalizeLabel = document.createElement("label");
-                normalizeLabel.htmlFor = "normalize-size-" + this.id;
-                normalizeLabel.textContent = "Normalize to 512px height";
-                normalizeLabel.style.fontSize = "12px";
-                normalizeLabel.style.cursor = "pointer";
-                
-                normalizationControls.appendChild(normalizeCheckbox);
-                normalizationControls.appendChild(normalizeLabel);
-                
-                // Variable to track normalization state
-                let isNormalizedView = false;
-                
                 // Add elements to container in the correct order
                 container.appendChild(imageContainer);
                 container.appendChild(infoPanel);
-                container.appendChild(normalizationControls);
                 container.appendChild(buttonsContainer);
                 
                 // Sample points data
@@ -198,11 +167,6 @@ app.registerExtension({
                 // Store actual dimensions of the original image
                 let originalImageWidth = 0;
                 let originalImageHeight = 0;
-                
-                // Store canvas positioning info
-                let canvasOffset = { x: 0, y: 0 };
-                let canvasScaledWidth = 0;
-                let canvasScaledHeight = 0;
                 
                 // Method to handle data from Python
                 this.onImageSamplerInit = (data) => {
@@ -232,38 +196,21 @@ app.registerExtension({
                 const loadImageFromBase64 = (base64Data) => {
                     const img = new Image();
                     img.onload = () => {
-                        // Store original image dimensions
+                        // Set canvas size to exactly match the image dimensions
                         originalImageWidth = img.width;
                         originalImageHeight = img.height;
                         
-                        // Calculate dimensions to maintain aspect ratio
-                        const containerWidth = imageContainer.clientWidth;
-                        const containerHeight = imageContainer.clientHeight;
+                        // Set canvas dimensions to match the image exactly
+                        canvas.width = img.width;
+                        canvas.height = img.height;
                         
-                        // Determine scale factor for fitting the image
-                        const scaleWidth = containerWidth / img.width;
-                        const scaleHeight = containerHeight / img.height;
-                        const scale = Math.min(scaleWidth, scaleHeight);
+                        // Adjust container size to fit the image exactly
+                        imageContainer.style.width = img.width + "px";
+                        imageContainer.style.height = img.height + "px";
                         
-                        // Calculate the actual dimensions the image will be shown at
-                        canvasScaledWidth = Math.round(img.width * scale);
-                        canvasScaledHeight = Math.round(img.height * scale);
-                        
-                        // Set canvas size to match the scaled image
-                        canvas.width = canvasScaledWidth;
-                        canvas.height = canvasScaledHeight;
-                        
-                        // Calculate offsets to center the image in the container
-                        canvasOffset.x = Math.round((containerWidth - canvasScaledWidth) / 2);
-                        canvasOffset.y = Math.round((containerHeight - canvasScaledHeight) / 2);
-                        
-                        // Position the canvas
-                        canvas.style.left = canvasOffset.x + "px";
-                        canvas.style.top = canvasOffset.y + "px";
-                        
-                        // Draw the image
+                        // Draw the image at 1:1 pixel ratio
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0);
                         
                         // Store image reference
                         image = img;
@@ -329,39 +276,11 @@ app.registerExtension({
                     });
                 };
                 
-                // Convert mouse position to normalized coordinates (0-1)
-                const mouseToNormalized = (mouseX, mouseY) => {
-                    // Get position relative to canvas
-                    const canvasX = mouseX;
-                    const canvasY = mouseY;
-                    
-                    // Convert to normalized coordinates (0-1)
-                    // We use the canvas dimensions which are set to match the actual displayed image dimensions
-                    const normalizedX = canvasX / canvas.width;
-                    const normalizedY = canvasY / canvas.height;
-                    
-                    // Ensure we stay within bounds
-                    return {
-                        x: Math.max(0, Math.min(1, normalizedX)),
-                        y: Math.max(0, Math.min(1, normalizedY)),
-                        canvasX: canvasX,
-                        canvasY: canvasY
-                    };
-                };
-                
-                // Convert normalized coordinates to canvas position
-                const normalizedToCanvas = (normalizedX, normalizedY) => {
-                    return {
-                        x: normalizedX * canvas.width,
-                        y: normalizedY * canvas.height
-                    };
-                };
-                
                 // Check if a point is under the cursor
                 const getPointAtPosition = (x, y) => {
                     for (let i = samplePoints.length - 1; i >= 0; i--) {
                         const point = samplePoints[i];
-                        const canvasPos = normalizedToCanvas(point.x, point.y);
+                        const canvasPos = { x: point.x * canvas.width, y: point.y * canvas.height };
                         
                         const distance = Math.sqrt(
                             Math.pow(x - canvasPos.x, 2) + Math.pow(y - canvasPos.y, 2)
@@ -407,10 +326,9 @@ app.registerExtension({
                 canvas.addEventListener("mousedown", (e) => {
                     e.preventDefault(); // Prevent default browser behavior
                     
-                    const rect = canvas.getBoundingClientRect();
-                    // Get exact cursor position relative to canvas
-                    const mouseX = e.clientX - rect.left;
-                    const mouseY = e.clientY - rect.top;
+                    // Use offsetX and offsetY directly for mouse position
+                    const mouseX = e.offsetX;
+                    const mouseY = e.offsetY;
                     
                     updateDebugInfo(`Mouse: ${mouseX.toFixed(1)}, ${mouseY.toFixed(1)}`);
                     
@@ -433,7 +351,7 @@ app.registerExtension({
                     } else if (mouseX >= 0 && mouseX <= canvas.width && 
                               mouseY >= 0 && mouseY <= canvas.height && image) {
                         // Calculate normalized coordinates for the new point
-                        const normalized = mouseToNormalized(mouseX, mouseY);
+                        const normalized = { x: mouseX / canvas.width, y: mouseY / canvas.height };
                         
                         // Add new point
                         const newPoint = { 
@@ -456,13 +374,12 @@ app.registerExtension({
                     
                     e.preventDefault();
                     
-                    const rect = canvas.getBoundingClientRect();
-                    // Get exact cursor position relative to canvas
-                    const mouseX = e.clientX - rect.left;
-                    const mouseY = e.clientY - rect.top;
+                    // Use offsetX and offsetY directly for mouse position
+                    const mouseX = e.offsetX;
+                    const mouseY = e.offsetY;
                     
                     // Calculate normalized coordinates
-                    const normalized = mouseToNormalized(mouseX, mouseY);
+                    const normalized = { x: mouseX / canvas.width, y: mouseY / canvas.height };
                     
                     // Update point position with normalized coordinates
                     samplePoints[selectedPoint].x = normalized.x;
@@ -489,14 +406,13 @@ app.registerExtension({
                 canvas.addEventListener("mousemove", (e) => {
                     if (debugInfo.style.display !== "block") return;
                     
-                    const rect = canvas.getBoundingClientRect();
-                    const mouseX = e.clientX - rect.left;
-                    const mouseY = e.clientY - rect.top;
+                    // Use offsetX and offsetY directly
+                    const mouseX = e.offsetX;
+                    const mouseY = e.offsetY;
                     
-                    const normalized = mouseToNormalized(mouseX, mouseY);
+                    const normalized = { x: mouseX / canvas.width, y: mouseY / canvas.height };
                     updateDebugInfo(
-                        `Mouse: ${mouseX.toFixed(1)}, ${mouseY.toFixed(1)} | ` +
-                        `Norm: ${normalized.x.toFixed(3)}, ${normalized.y.toFixed(3)}`
+                        `Mouse: ${mouseX.toFixed(1)}, ${mouseY.toFixed(1)} | `
                     );
                 });
                 
@@ -522,56 +438,6 @@ app.registerExtension({
                 // Continue workflow button
                 continueButton.addEventListener("click", () => {
                     continueWorkflow();
-                });
-                
-                // Handle normalization checkbox
-                normalizeCheckbox.addEventListener('change', function() {
-                    isNormalizedView = this.checked;
-                    
-                    if (!image) return;
-                    
-                    // Recalculate canvas size based on normalization setting
-                    const containerWidth = imageContainer.clientWidth;
-                    const containerHeight = imageContainer.clientHeight;
-                    
-                    if (isNormalizedView) {
-                        // Normalize to 512px height
-                        const aspectRatio = originalImageWidth / originalImageHeight;
-                        const normalizedHeight = 512;
-                        const normalizedWidth = Math.round(normalizedHeight * aspectRatio);
-                        
-                        // Set canvas to normalized dimensions
-                        canvas.width = normalizedWidth;
-                        canvas.height = normalizedHeight;
-                        
-                        // Center the canvas in the container
-                        canvasOffset.x = Math.round((containerWidth - normalizedWidth) / 2);
-                        canvasOffset.y = Math.round((containerHeight - normalizedHeight) / 2);
-                        
-                    } else {
-                        // Use container-fitted size (original behavior)
-                        const scaleWidth = containerWidth / originalImageWidth;
-                        const scaleHeight = containerHeight / originalImageHeight;
-                        const scale = Math.min(scaleWidth, scaleHeight);
-                        
-                        canvasScaledWidth = Math.round(originalImageWidth * scale);
-                        canvasScaledHeight = Math.round(originalImageHeight * scale);
-                        
-                        canvas.width = canvasScaledWidth;
-                        canvas.height = canvasScaledHeight;
-                        
-                        canvasOffset.x = Math.round((containerWidth - canvasScaledWidth) / 2);
-                        canvasOffset.y = Math.round((containerHeight - canvasScaledHeight) / 2);
-                    }
-                    
-                    // Position the canvas
-                    canvas.style.left = canvasOffset.x + "px";
-                    canvas.style.top = canvasOffset.y + "px";
-                    
-                    // Redraw everything
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-                    drawSamplePoints();
                 });
                 
                 // When the node receives the output from processing
@@ -628,34 +494,17 @@ app.registerExtension({
                     offscreenCanvas.convertToBlob().then(blob => {
                         const img = new Image();
                         img.onload = () => {
-                            // Calculate dimensions to maintain aspect ratio
-                            const containerWidth = imageContainer.clientWidth;
-                            const containerHeight = imageContainer.clientHeight;
+                            // Set canvas size to exactly match the image dimensions
+                            canvas.width = img.width;
+                            canvas.height = img.height;
                             
-                            // Determine scale factor for fitting the image
-                            const scaleWidth = containerWidth / img.width;
-                            const scaleHeight = containerHeight / img.height;
-                            const scale = Math.min(scaleWidth, scaleHeight);
+                            // Adjust container size to fit the image exactly
+                            imageContainer.style.width = img.width + "px";
+                            imageContainer.style.height = img.height + "px";
                             
-                            // Calculate the actual dimensions the image will be shown at
-                            canvasScaledWidth = Math.round(img.width * scale);
-                            canvasScaledHeight = Math.round(img.height * scale);
-                            
-                            // Set canvas size to match the scaled image
-                            canvas.width = canvasScaledWidth;
-                            canvas.height = canvasScaledHeight;
-                            
-                            // Calculate offsets to center the image in the container
-                            canvasOffset.x = Math.round((containerWidth - canvasScaledWidth) / 2);
-                            canvasOffset.y = Math.round((containerHeight - canvasScaledHeight) / 2);
-                            
-                            // Position the canvas
-                            canvas.style.left = canvasOffset.x + "px";
-                            canvas.style.top = canvasOffset.y + "px";
-                            
-                            // Draw the image
+                            // Draw the image at 1:1 pixel ratio
                             ctx.clearRect(0, 0, canvas.width, canvas.height);
-                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            ctx.drawImage(img, 0, 0);
                             
                             // Store image reference
                             image = img;
@@ -670,32 +519,13 @@ app.registerExtension({
                 // Handle window resize to reposition points correctly
                 const resizeObserver = new ResizeObserver(() => {
                     if (image) {
-                        // Recalculate canvas size and position
-                        const containerWidth = imageContainer.clientWidth;
-                        const containerHeight = imageContainer.clientHeight;
+                        // Don't allow resizing - maintain original dimensions
+                        canvas.width = originalImageWidth;
+                        canvas.height = originalImageHeight;
+                        imageContainer.style.width = originalImageWidth + "px";
+                        imageContainer.style.height = originalImageHeight + "px";
                         
-                        // Determine scale factor for fitting the image
-                        const scaleWidth = containerWidth / originalImageWidth;
-                        const scaleHeight = containerHeight / originalImageHeight;
-                        const scale = Math.min(scaleWidth, scaleHeight);
-                        
-                        // Calculate the actual dimensions the image will be shown at
-                        canvasScaledWidth = Math.round(originalImageWidth * scale);
-                        canvasScaledHeight = Math.round(originalImageHeight * scale);
-                        
-                        // Set canvas size to match the scaled image
-                        canvas.width = canvasScaledWidth;
-                        canvas.height = canvasScaledHeight;
-                        
-                        // Calculate offsets to center the image in the container
-                        canvasOffset.x = Math.round((containerWidth - canvasScaledWidth) / 2);
-                        canvasOffset.y = Math.round((containerHeight - canvasScaledHeight) / 2);
-                        
-                        // Position the canvas
-                        canvas.style.left = canvasOffset.x + "px";
-                        canvas.style.top = canvasOffset.y + "px";
-                        
-                        // Redraw everything
+                        // Redraw everything at the original size
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
                         ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
                         drawSamplePoints();
@@ -709,6 +539,7 @@ app.registerExtension({
                 this.addDOMWidget("image_sampler_widget", "image_sampler", container, {
                     serialize: false,
                     hideOnZoom: false,
+                    resizable: false
                 });
                 
                 // Make the input widgets smaller
