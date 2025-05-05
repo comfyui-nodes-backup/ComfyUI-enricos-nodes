@@ -279,14 +279,30 @@ app.registerExtension({
                         ctx.font = "bold 12px Arial";
                         ctx.textAlign = "center";
                         
-                        // Draw background for text
-                        const textWidth = ctx.measureText(hexColor).width;
-                        ctx.fillStyle = "rgba(0,0,0,0.6)";
-                        ctx.fillRect(x - textWidth/2 - 2, y + pointSize + 5, textWidth + 4, 14);
+                        // Parse hex to RGB values
+                        const r = parseInt(hexColor.substring(1, 3), 16);
+                        const g = parseInt(hexColor.substring(3, 5), 16);
+                        const b = parseInt(hexColor.substring(5, 7), 16);
+                        const rgbText = `(${r}, ${g}, ${b})`;
                         
-                        // Draw text
+                        // Draw background for hex text
+                        const hexTextWidth = ctx.measureText(hexColor).width;
+                        ctx.fillStyle = "rgba(0,0,0,0.6)";
+                        ctx.fillRect(x - hexTextWidth/2 - 2, y + pointSize + 5, hexTextWidth + 4, 14);
+                        
+                        // Draw hex text
                         ctx.fillStyle = "#ffffff";
                         ctx.fillText(hexColor, x, y + pointSize + 15);
+                        
+                        // Draw background for RGB text
+                        ctx.font = "10px Arial";
+                        const rgbTextWidth = ctx.measureText(rgbText).width;
+                        ctx.fillStyle = "rgba(0,0,0,0.6)";
+                        ctx.fillRect(x - rgbTextWidth/2 - 2, y + pointSize + 20, rgbTextWidth + 4, 14);
+                        
+                        // Draw RGB text
+                        ctx.fillStyle = "#ffffff";
+                        ctx.fillText(rgbText, x, y + pointSize + 30);
                     });
                 };
                 
