@@ -104,7 +104,7 @@ app.registerExtension({
                 infoPanel.style.borderRadius = "4px";
                 infoPanel.style.fontSize = "12px";
                 infoPanel.style.color = "#ccc";
-                infoPanel.innerHTML = "Click on image to add color samples<br>Drag points to move<br>CTRL+Click to remove a point";
+                infoPanel.innerHTML = "Click on image to add color samples<br>Drag points to move<br>CTRL+Click to remove a point<br>Adjust sample size to average colors<br>Click 'Continue Workflow' to proceed";
                 
                 // Create buttons container
                 const buttonsContainer = document.createElement("div");

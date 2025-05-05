@@ -20,7 +20,7 @@ class ImageColorSampler:
                 "image": ("IMAGE",),
                 "sample_points": ("STRING", {"default": "[]", "multiline": True}),
                 "palette_size": ("INT", {"default": 128, "min": 32, "max": 512}),
-                "sample_size": ("INT", {"default": 5, "min": 1, "max": 15}),
+                "sample_size": ("INT", {"default": 1, "min": 1, "max": 30}),
                 "wait_for_input": ("BOOLEAN", {"default": True}),
                 "output_format": (["JSON", "Hex List", "Both"], {"default": "Both"})
             },
