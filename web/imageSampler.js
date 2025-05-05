@@ -588,8 +588,8 @@ app.registerExtension({
             nodeType.prototype.onConnectionsChange = function(type, slotIndex, isConnected, link_info, output) {
                 const result = onConnectionsChange?.apply(this, arguments);
                 
-                // Process only when connecting an input
-                if (type === LiteGraph.INPUT && isConnected) {
+                // Process only when connecting an input and link_info is valid
+                if (type === LiteGraph.INPUT && isConnected && link_info && link_info.origin_id) {
                     // Get the linked node
                     const linkedNode = this.graph.getNodeById(link_info.origin_id);
                     if (linkedNode) {
