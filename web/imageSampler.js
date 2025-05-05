@@ -276,7 +276,7 @@ app.registerExtension({
                         
                         // Display hex code next to the point
                         const hexColor = point.color || "#ffffff";
-                        ctx.font = "bold 10px Arial";
+                        ctx.font = "bold 12px Arial";
                         ctx.textAlign = "center";
                         
                         // Draw background for text

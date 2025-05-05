@@ -28,16 +28,16 @@ class ImageColorSampler:
             },
         }
 
-    RETURN_TYPES = ("IMAGE", "STRING", "STRING", "IMAGE")
-    RETURN_NAMES = ("palette", "sampled_colors", "hex_codes", "swatches")
+    RETURN_TYPES = ("IMAGE", "STRING", "STRING", "IMAGE", "INT", "INT")
+    RETURN_NAMES = ("palette", "sampled_colors", "hex_codes", "swatches", "rgb_24bit", "rgb_565")
     FUNCTION = "create_palette"
     CATEGORY = "image/color"
     
     # Enable dynamic outputs for individual colors
     OUTPUT_NODE = True
     
-    # Enable list output for swatches and hex_codes
-    OUTPUT_IS_LIST = [False, False, True, True]
+    # Enable list output for swatches, hex_codes, rgb_24bit and rgb_565
+    OUTPUT_IS_LIST = [False, False, True, True, True, True]
     
     # Track which nodes are waiting for user input
     waiting_nodes = set()
@@ -55,6 +55,23 @@ class ImageColorSampler:
         img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
         return f"data:image/png;base64,{img_str}"
     
+    def rgb_to_16bit(self, r, g, b, format='RGB565'):
+        """
+        Convert RGB values (0-255) to 16-bit color value in RGB565 format
+        
+        Args:
+            r, g, b: 8-bit color values (0-255)
+            format: Currently only 'RGB565' is supported
+        
+        Returns:
+            16-bit color value
+        """
+        # Convert to RGB565 format (5 bits R, 6 bits G, 5 bits B)
+        r5 = int(r * 31 / 255)
+        g6 = int(g * 63 / 255)
+        b5 = int(b * 31 / 255)
+        return (r5 << 11) | (g6 << 5) | b5
+    
     def create_palette(self, image, sample_points, palette_size=128, sample_size=5, wait_for_input=True, node_id=None):
         """
         Creates a color palette from the sampled points on the image.
@@ -68,7 +85,7 @@ class ImageColorSampler:
             node_id: Unique ID of this node instance
         
         Returns:
-            Tuple of (palette_image, sampled_colors_json, hex_codes_string, swatches_list)
+            Tuple of (palette_image, sampled_colors_json, hex_codes_list, swatches_list, rgb_24bit_list, rgb_565_list)
         """
         # Parse the sample points
         try:
@@ -99,7 +116,7 @@ class ImageColorSampler:
             self.waiting_nodes.add(node_id)
             
             # Return ExecutionBlocker for all outputs
-            return (ExecutionBlocker(None), ExecutionBlocker(None), ExecutionBlocker(None), ExecutionBlocker(None))
+            return (ExecutionBlocker(None), ExecutionBlocker(None), ExecutionBlocker(None), ExecutionBlocker(None), ExecutionBlocker(None), ExecutionBlocker(None))
         
         # Remove from waiting list if resuming
         if node_id in self.waiting_nodes:
@@ -117,12 +134,14 @@ class ImageColorSampler:
             palette_img = np.zeros((palette_size, palette_size, 3), dtype=np.float32)
             palette_tensor = torch.from_numpy(palette_img)[None, ]
             empty_swatch = torch.from_numpy(np.zeros((palette_size, palette_size, 3), dtype=np.float32))[None, ]
-            return (palette_tensor, "[]", [], [empty_swatch])
+            return (palette_tensor, "[]", [], [empty_swatch], [], [])
             
         # Calculate colors for each sample point
         sampled_colors = []
         hex_codes = []
         swatches = []
+        rgb_24bit = []
+        rgb_565 = []
         
         for point in points:
             x = int(point["x"] * width)
@@ -158,6 +177,12 @@ class ImageColorSampler:
             swatch_tensor = torch.from_numpy(swatch_img)[None, ]
             swatches.append(swatch_tensor)
             
+            # Add 24-bit RGB value to list
+            rgb_24bit.append((r << 16) | (g << 8) | b)
+            
+            # Add 16-bit RGB565 value to list
+            rgb_565.append(self.rgb_to_16bit(r, g, b, 'RGB565'))
+            
         # Create palette image
         num_colors = len(sampled_colors)
         if num_colors == 0:
@@ -165,7 +190,7 @@ class ImageColorSampler:
             palette_img = np.zeros((palette_size, palette_size, 3), dtype=np.float32)
             palette_tensor = torch.from_numpy(palette_img)[None, ]
             empty_swatch = torch.from_numpy(np.zeros((palette_size, palette_size, 3), dtype=np.float32))[None, ]
-            return (palette_tensor, "[]", [], [empty_swatch])
+            return (palette_tensor, "[]", [], [empty_swatch], [], [])
             
         # Create palette image - a horizontal strip of colors
         stripe_height = palette_size
@@ -192,8 +217,8 @@ class ImageColorSampler:
         # Prepare dynamic outputs (individual hex codes)
         self.output_colors = hex_codes
         
-        # Return all outputs, including the swatches list
-        return (palette_tensor, json_colors, hex_codes, swatches)
+        # Return all outputs, including the swatches list, 24-bit RGB values, and RGB565 values
+        return (palette_tensor, json_colors, hex_codes, swatches, rgb_24bit, rgb_565)
     
     # Method to provide dynamic outputs for individual colors
     def get_output_for_node_type(self, node):
