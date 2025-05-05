@@ -37,8 +37,8 @@ class ImageColorSampler:
     # Enable dynamic outputs for individual colors
     OUTPUT_NODE = True
     
-    # Enable list output for swatches
-    OUTPUT_IS_LIST = [False, False, False, True]
+    # Enable list output for swatches and hex_codes
+    OUTPUT_IS_LIST = [False, False, True, True]
     
     # Track which nodes are waiting for user input
     waiting_nodes = set()
@@ -82,7 +82,7 @@ class ImageColorSampler:
         is_initial_call = node_id not in self.waiting_nodes
         
         # For initial call, send image data to the UI for interactive editing
-        if is_initial_call and wait_for_input:
+        if (is_initial_call and wait_for_input):
             # Convert image tensor to a base64 string for sending to UI
             img_base64 = self.tensor_to_base64_image(image)
             
@@ -119,7 +119,7 @@ class ImageColorSampler:
             palette_img = np.zeros((palette_size, palette_size, 3), dtype=np.float32)
             palette_tensor = torch.from_numpy(palette_img)[None, ]
             empty_swatch = torch.from_numpy(np.zeros((palette_size, palette_size, 3), dtype=np.float32))[None, ]
-            return (palette_tensor, "[]", "[]", [empty_swatch])
+            return (palette_tensor, "[]", [], [empty_swatch])
             
         # Calculate colors for each sample point
         sampled_colors = []
@@ -167,7 +167,7 @@ class ImageColorSampler:
             palette_img = np.zeros((palette_size, palette_size, 3), dtype=np.float32)
             palette_tensor = torch.from_numpy(palette_img)[None, ]
             empty_swatch = torch.from_numpy(np.zeros((palette_size, palette_size, 3), dtype=np.float32))[None, ]
-            return (palette_tensor, "[]", "[]", [empty_swatch])
+            return (palette_tensor, "[]", [], [empty_swatch])
             
         # Create palette image - a horizontal strip of colors
         stripe_height = palette_size
@@ -190,13 +190,12 @@ class ImageColorSampler:
         
         # Return outputs based on format preference
         json_colors = json.dumps(sampled_colors)
-        hex_list = json.dumps(hex_codes)
         
         # Prepare dynamic outputs (individual hex codes)
         self.output_colors = hex_codes
         
         # Return all outputs, including the swatches list
-        return (palette_tensor, json_colors, hex_list, swatches)
+        return (palette_tensor, json_colors, hex_codes, swatches)
     
     # Method to provide dynamic outputs for individual colors
     def get_output_for_node_type(self, node):

@@ -460,6 +460,11 @@ app.registerExtension({
                     }
                 };
                 
+                // Extract hex codes as a list from sample points
+                const getHexCodesList = () => {
+                    return samplePoints.map(point => point.color);
+                };
+                
                 // Clear all sample points
                 clearButton.addEventListener("click", () => {
                     samplePoints = [];
