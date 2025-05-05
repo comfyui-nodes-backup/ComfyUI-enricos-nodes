@@ -273,6 +273,20 @@ app.registerExtension({
                             ctx.lineWidth = 2;
                             ctx.stroke();
                         }
+                        
+                        // Display hex code next to the point
+                        const hexColor = point.color || "#ffffff";
+                        ctx.font = "bold 10px Arial";
+                        ctx.textAlign = "center";
+                        
+                        // Draw background for text
+                        const textWidth = ctx.measureText(hexColor).width;
+                        ctx.fillStyle = "rgba(0,0,0,0.6)";
+                        ctx.fillRect(x - textWidth/2 - 2, y + pointSize + 5, textWidth + 4, 14);
+                        
+                        // Draw text
+                        ctx.fillStyle = "#ffffff";
+                        ctx.fillText(hexColor, x, y + pointSize + 15);
                     });
                 };
                 
@@ -295,20 +309,30 @@ app.registerExtension({
                 
                 // Get pixel color at a specific position
                 const getPixelColorAtPosition = (x, y) => {
-                    if (!ctx) return "#FFFFFF";
+                    if (!ctx || !image) return "#FFFFFF";
                     
                     try {
                         // Ensure coordinates are integers and within canvas bounds
                         const pixelX = Math.max(0, Math.min(canvas.width - 1, Math.floor(x)));
                         const pixelY = Math.max(0, Math.min(canvas.height - 1, Math.floor(y)));
                         
+                        // First redraw just the image at the sampling location to get accurate color
+                        // Create a temporary 1x1 area to sample from the original image
+                        ctx.save();
+                        ctx.clearRect(pixelX, pixelY, 1, 1);
+                        ctx.drawImage(image, 
+                            pixelX, pixelY, 1, 1,
+                            pixelX, pixelY, 1, 1);
+                            
                         // Get the pixel data at the exact point
                         const pixelData = ctx.getImageData(pixelX, pixelY, 1, 1).data;
+                        ctx.restore();
                         
-                        // Convert to hex color
-                        return `#${pixelData[0].toString(16).padStart(2,'0')}${
-                            pixelData[1].toString(16).padStart(2,'0')}${
-                            pixelData[2].toString(16).padStart(2,'0')}`;
+                        // Convert to hex color with proper padding
+                        const r = pixelData[0].toString(16).padStart(2, '0');
+                        const g = pixelData[1].toString(16).padStart(2, '0');
+                        const b = pixelData[2].toString(16).padStart(2, '0');
+                        return `#${r}${g}${b}`;
                     } catch (e) {
                         console.error("Error getting pixel color:", e);
                         return "#FFFFFF";
@@ -388,9 +412,18 @@ app.registerExtension({
                     // Update debug info
                     updateDebugInfo(`Point: (${normalized.x.toFixed(3)}, ${normalized.y.toFixed(3)})`);
                     
+                    // First redraw the image to get accurate sampling
+                    if (image) {
+                        // Redraw the point's area to ensure we're sampling from the original image
+                        ctx.save();
+                        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+                        ctx.restore();
+                    }
+                    
                     // Update color at new position
                     samplePoints[selectedPoint].color = getPixelColorAtPosition(mouseX, mouseY);
                     
+                    // Then draw all sample points
                     drawSamplePoints();
                 });
                 
